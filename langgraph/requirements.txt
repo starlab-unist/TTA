@@ -8,3 +8,6 @@ ollama
 langchain
 langgraph
 langgraph-community
+langchain-ollama
+langchain-core
+pydantic

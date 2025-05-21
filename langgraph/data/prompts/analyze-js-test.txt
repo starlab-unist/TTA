@@ -1,0 +1,20 @@
+The jest comparing the original and transformed code failed. Analyze the test output, source code, transformed code, and test cases to determine if the failure is due to:
+1. An issue in the transformed code (e.g., it produces different outputs).
+2. An issue in the test cases (e.g., incorrect inputs, invalid assertions, or syntax errors).
+
+Provide a brief explanation of the likely cause and suggest whether to:
+- Conclude the codes are not equivalent.
+- Revise the test cases and retry.
+
+Test cases:
+```
+{test_cases}
+```
+
+Test output:
+{test_result}
+
+Output format:
+- Cause: [Transformed code issue | Test case issue]
+- Explanation: [Your explanation]
+- Action: [Conclude not equivalent | Revise test cases]

@@ -1,0 +1,20 @@
+The unittest failed due to issues in the test cases. Based on the failure analysis, revise the test cases to fix the issues. The test case should use `unittest.TestCase` and `assertEqual` to compare outputs of `original_function` and `transformed_function`. The revised test code will be combined in the format:
+
+```
+{{source_code}}
+{{transformed_code}}
+{{test_cases}}
+```
+
+- Generate at least 10 test inputs that are simple values (e.g., integers, strings).
+- Ensure the test case is a valid Python unittest class.
+
+Previous test cases:
+```
+{test_cases}
+```
+
+Failure analysis:
+{failure_analysis}
+
+Output the revised test case code with source code and transformed code.

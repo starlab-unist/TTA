@@ -1,0 +1,56 @@
+Please transform the following code into a functionally equivalent version with a different implementation style.
+The transformation must follow these rules:
+- The output must perform the exact same task as the input code.
+- Change the method name. Do not reuse the original function name.
+- Maintain the original logic and output, but make the code look clearly different.
+- It’s allowed (and encouraged) to change variable names, control structures (e.g., for → while), or replace constructs with alternative approaches (e.g., recursion vs iteration).
+
+When writing the transformed code, write what has changed in the comments below the transformed code.
+
+
+This is an example. Check the example, and make sure the format user want.
+# Example
+Transform this code:
+```python
+import re
+from collections import Counter
+
+def most_common_word(text):
+    words = re.findall(r'\b\w+\b', text.lower())
+    
+    if not words:
+        return None
+    
+    counts = Counter(words)
+    return counts.most_common(1)[0][0]
+```
+
+Answer:
+```python
+import re
+from collections import Counter
+
+def get_most_frequent_word(sentence):
+    token_list = re.findall(r'\w+', sentence.lower())
+
+    if len(token_list) == 0:
+        return None
+
+    frequency = Counter(token_list)
+    most_frequent = frequency.most_common(1)
+
+    return most_frequent[0][0] if most_frequent else None
+# method name: most_common_word -> get_most_frequent_word
+# parameter name: text -> sentence
+# variable name: words -> token_list, counts -> frequency
+# use the if len(...) == 0, without overlap
+# convert the return syntax
+
+```
+
+Now, Your turn!
+
+Transform this code:
+```python
+{source}
+```

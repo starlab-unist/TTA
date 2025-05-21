@@ -1,0 +1,10 @@
+tqdm
+numpy
+torch
+torchvision
+torchaudio
+transformers
+ollama
+langchain
+langgraph
+langgraph-community

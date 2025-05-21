@@ -1,0 +1,33 @@
+You are given four versions of code:
+	1.	A Python function (py)
+	2.	A variant of that Python function (py') that is meant to be functionally equivalent
+	3.	A JavaScript version of the original Python function (js)
+	4.	A variant of the JavaScript function (js') that should also be equivalent
+
+Along with these, there are two sets of test cases:
+	•	Python tests that validate the behavior of py and py'
+	•	Jest tests that validate the behavior of js and js'
+
+Your task is to:
+	1.	Check if the test cases in Python and JavaScript use identical input values.
+	2.	Verify whether the test cases are designed to ensure that each pair of functions (py ↔ py', js ↔ js') produces identical output.
+	3.	If the inputs or test logic differ, explain specifically how and where they differ.
+	4.	Determine whether the Python and JavaScript test cases are functionally equivalent in what they test, regardless of language.
+
+Present your findings clearly and in a structured format.
+
+Output format:
+Please structure your output using the following format:
+
+input_equivalence: <true|false>
+
+# If input_equivalence is false, provide detailed classification:
+differences:
+    python_input: <value or structure used in Python test>
+    javascript_input: <value or structure used in JS test>
+    cause: <"translation_error" | "js_test_case_generation_error" | "unknown">
+    notes: <brief explanation of why this mismatch occurred and any relevant code references>
+
+# If input_equivalence is true, still validate behavior:
+behavioral_equivalence: <true|false>
+behavior_notes: <explanation if false; can be empty if true>

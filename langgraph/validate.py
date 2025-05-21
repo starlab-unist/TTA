@@ -1,21 +1,24 @@
-
+import os
 import glob
 import subprocess
 from tqdm import tqdm
 from argparse import ArgumentParser
+from validator import *
+
 
 def parse_args():
-    
     parser = ArgumentParser()
     
     parser.add_argument("--test_py_folder", type=str, default="./data/test-py")
-    parser.add_argument("--test_js_folder", type=str, default="./result/qwen/3b-test-js")
-    parser.add_argument("-o", "--output_dir", type=str, default="./result/qwen/3b-report.txt")
-    
+    parser.add_argument("--test_js_folder", type=str, default=f"./result/qwen/32b-test-js")
+    parser.add_argument("-o", "--output_dir", type=str, default=f"./result/qwen/32b-report.txt")
     return parser.parse_args()
 
 def main(args):
+   
+    poppin_idx, poppin_js, poppin_py = validateInput(pythonDir=args.test_py_folder, jsDir=args.test_js_folder)
     
+  
     test_py_folder = args.test_py_folder
     if not test_py_folder.endswith("/"):
         test_py_folder += "/"
@@ -31,6 +34,7 @@ def main(args):
     assert len(test_py) == len(test_js), "The number of test_py and test_js is not the same!"
     
     report = ["id\tpy\tjs\tnotice"]
+    inconsistent_samples = []
     success_samples = []
     failure_samples = []
     abnormal_samples = []
@@ -43,7 +47,14 @@ def main(args):
         #     content.insert(0, "import unittest")
         #     with open(t_py, 'w') as f:
         #         f.write("\n".join(content))
-        
+        if i in poppin_idx:
+            notice = "Inconsistent"
+            inconsistent_samples.append(i)
+            report.append(f"{i}\tN/A\tN/A\t{notice}")
+            print(f"Test {i} is inconsistent, skipping...")
+            continue
+
+
         try:
             result_py = subprocess.run(
                 f"python {t_py}",
@@ -85,7 +96,7 @@ def main(args):
         report.append(f"{i}\t{r_py}\t{r_js}\t{notice}")
     
     total = len(test_py)
-    valid_count = total - len(invalid_samples)
+    valid_count = total - (len(invalid_samples) + len(inconsistent_samples))
     
     valid_log = "valid rate: {} / {} ({} %)".format(
         valid_count, total, (valid_count / total) * 100
@@ -110,6 +121,11 @@ def main(args):
     
     print(invalid_log)
     report.append(invalid_log)
+
+    inconsistent_log = "inconsistent cases: {}".format(inconsistent_samples)
+    
+    print(inconsistent_log)
+    report.append(inconsistent_log)
     
     with open(args.output_dir, 'w') as f:
         f.write("\n".join(report))

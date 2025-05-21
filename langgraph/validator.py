@@ -10,6 +10,9 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 import csv
 
+class AnswerSchema(BaseModel):
+    answer: Literal["Equal", "Not_Equal"]
+
 
 SYSTEM_PROMPT = """
 You are a Software Engineering expert.
@@ -506,20 +509,10 @@ Expected JSON response:
 }
 {% endraw %}
 """
-
-
-
-class AnswerSchema(BaseModel):
-    answer: Literal["Equal", "Not_Equal"]
-
-if __name__ == "__main__":
-    version = "32b"
-    model = "qwen"
-
-    
-    pythonDir = "./data/test-py"
-    jsDir     = f"./result/{model}/{version}-test-js"
-
+def validateInput(pythonDir, jsDir):
+   
+    pythonDir = pythonDir
+    jsDir = jsDir
     
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -528,13 +521,16 @@ if __name__ == "__main__":
         ],
         template_format="jinja2",
     )
-    model_id = "qwen2.5-coder:32b-instruct-fp16"
+    model_id = "qwen2.5-coder:32b-instruct-q8_0"
     llm = ChatOllama(model=MODEL_ID, temperature=0.0)
     prompt | llm
 
     mismatches, indices, pypaths, jspaths = compare_test_cases(pythonDir, jsDir)
     parser = PydanticOutputParser(pydantic_object=AnswerSchema)
     logger = []
+    ret_js_path = []
+    ret_py_path = []
+    ret_idx = []
     print(f"Total mismatches: {mismatches}")
     if indices:
         print("\nInvalid file indices and paths:")
@@ -582,12 +578,13 @@ if __name__ == "__main__":
                 print(f"Unexpected error: {e}")
                 break
             print(result.answer)
+            if result.answer == "Not_Equal":
+                ret_idx.append(idx)
+                ret_js_path.append(js)
+                ret_py_path.append(py)
+           
             logger.append({'index': idx, 'answer': result.answer})
-    file_name = f"{model}_{version}_result.csv"
-    with open(file_name, "w", newline="", encoding="utf-8") as csvfile:
-  
-        fieldnames = ["index", "answer"]
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(logger)
-    print(f"File Written to : {file_name}")
+
+
+    return ret_idx, ret_js_path, ret_py_path
+

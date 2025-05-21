@@ -19,6 +19,14 @@ nvm alias default 16
 
 curl -fsSL https://ollama.com/install.sh | sh
 nohup ollama serve > ollama.log &
+echo "Waiting for Ollama to start..."
+for i in {1..10}; do
+  if curl -s http://localhost:11434 > /dev/null; then
+    echo "Ollama is up!"
+    break
+  fi
+  sleep 1
+done
 ollama pull qwen2.5:72b
 
 # collect & install projects

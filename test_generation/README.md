@@ -2,6 +2,15 @@
 
 This repository supports running test generation experiments and evaluating the effectiveness of the generated tests in terms of coverage and error detection.
 
+## 0. Build with docker
+```bash
+docker build -t <image name> .
+```
+This is an example command for running a container, assuming that the server has a total of four NVIDIA GPUs.
+```bash
+docker run -itd   -w /root   --name <container name>   --runtime=nvidia   --gpus all   --device=/dev/nvidia-uvm   --device=/dev/nvidia-uvm-tools   --device=/dev/nvidia-modeset   --device=/dev/nvidiactl   --device=/dev/nvidia0   --device=/dev/nvidia1   --device=/dev/nvidia2   --device=/dev/nvidia3 <image name>
+```
+
 ## 1. Run Experiments
 
 To run all experiments, simply execute:
@@ -11,6 +20,8 @@ bash run.sh
 ```
 
 This will generate tests for five target projects using both our system and the baseline (TESTPILOT).
+
+This automated script conducts experiments using the Qwen2.5-72B model, with the temperature set to 0.7.
 
 ---
 
@@ -59,7 +70,7 @@ This is the **error detection rate**. A higher rate indicates stronger bug-detec
 ---
 
 ## 4. Expected Results
-
+The results were obtained by running an automated script.
 
 ---
 

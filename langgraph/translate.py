@@ -27,10 +27,10 @@ def parse_args():
 
     parser = ArgumentParser()
 
-    parser.add_argument("-i", "--input_dir", type=str, default="/workspace/vtw/data/semantic_equiv")
-    parser.add_argument("-o", "--output_dir", type=str, default="/workspace/vtw/data/pyeq2js")
-    parser.add_argument("-sp", "--system_prompt_dir", type=str, default="/workspace/vtw/data/prompts/translate-system.txt")
-    parser.add_argument("-up", "--user_prompt_dir", type=str, default="/workspace/vtw/data/prompts/translate-user.txt")
+    parser.add_argument("-i", "--input_dir", type=str, default="./data/semantic_equiv")
+    parser.add_argument("-o", "--output_dir", type=str, default="./data/pyeq2js")
+    parser.add_argument("-sp", "--system_prompt_dir", type=str, default="./data/prompts/translate-system.txt")
+    parser.add_argument("-up", "--user_prompt_dir", type=str, default="./data/prompts/translate-user.txt")
 
     parser.add_argument("-m", "--model", type=str, default="Qwen/Qwen2.5-Coder-32B-Instruct")
 

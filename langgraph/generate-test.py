@@ -38,14 +38,14 @@ def parse_args():
     
     parser = ArgumentParser()
     
-    parser.add_argument("-sd", "--source_dir", type=str, default="/workspace/vtw/data/humaneval-python.jsonl")
-    parser.add_argument("-td", "--transform_dir", type=str, default="/workspace/vtw/data/semantic_equiv")
-    parser.add_argument("-od", "--output_dir", type=str, default="/workspace/vtw/data/py_test")
+    parser.add_argument("-sd", "--source_dir", type=str, default="./data/humaneval-python.jsonl")
+    parser.add_argument("-td", "--transform_dir", type=str, default="./data/semantic_equiv")
+    parser.add_argument("-od", "--output_dir", type=str, default="./data/py_test")
     
-    parser.add_argument("--generate_test_prompt", type=str, default="/workspace/vtw/data/prompts/generate-py-test.txt")
-    parser.add_argument("--analyze_test_prompt", type=str, default="/workspace/vtw/data/prompts/analyze-py-test.txt")
-    parser.add_argument("--generate_equiv_prompt", type=str, default="/workspace/vtw/data/prompts/generate-equiv-user.txt")
-    parser.add_argument("--revise_test_prompt", type=str, default="/workspace/vtw/data/prompts/revise-py-test.txt")
+    parser.add_argument("--generate_test_prompt", type=str, default="./data/prompts/generate-py-test.txt")
+    parser.add_argument("--analyze_test_prompt", type=str, default="./data/prompts/analyze-py-test.txt")
+    parser.add_argument("--generate_equiv_prompt", type=str, default="./data/prompts/generate-equiv-user.txt")
+    parser.add_argument("--revise_test_prompt", type=str, default="./data/prompts/revise-py-test.txt")
     
     parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-q8_0")
     

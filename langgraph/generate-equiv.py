@@ -25,10 +25,10 @@ def set_seed(seed):
 def parse_args():
     parser = ArgumentParser()
     
-    parser.add_argument("-d", "--data_dir", type=str, default="/workspace/vtw/data/humaneval-python.jsonl")
-    parser.add_argument("-s", "--save_dir", type=str, default="/workspace/vtw/data/semantic_equiv")
-    parser.add_argument("-sp", "--system_prompt", type=str, default="/workspace/vtw/data/prompts/generate-equiv-system.txt")
-    parser.add_argument("-up", "--user_prompt", type=str, default="/workspace/vtw/data/prompts/generate-equiv-user.txt")
+    parser.add_argument("-d", "--data_dir", type=str, default="./data/humaneval-python.jsonl")
+    parser.add_argument("-s", "--save_dir", type=str, default="./data/semantic_equiv")
+    parser.add_argument("-sp", "--system_prompt", type=str, default="./data/prompts/generate-equiv-system.txt")
+    parser.add_argument("-up", "--user_prompt", type=str, default="./data/prompts/generate-equiv-user.txt")
     
     parser.add_argument("-m", "--model", type=str, default="Qwen/Qwen2.5-Coder-32B-Instruct")
     parser.add_argument("-b", "--batch_size", type=int, default=32)

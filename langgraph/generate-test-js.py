@@ -40,14 +40,14 @@ def parse_args():
     
     parser = ArgumentParser()
     
-    parser.add_argument("-sd", "--source_dir", type=str, default="/workspace/vtw/data/py2js")
-    parser.add_argument("-td", "--transform_dir", type=str, default="/workspace/vtw/data/pyeq2js")
-    parser.add_argument("-tcd", "--test_case_dir", type=str, default="/workspace/vtw/data/py_test")
-    parser.add_argument("-od", "--output_dir", type=str, default="/workspace/vtw/data/js_test")
+    parser.add_argument("-sd", "--source_dir", type=str, default="./data/py2js")
+    parser.add_argument("-td", "--transform_dir", type=str, default="./data/pyeq2js")
+    parser.add_argument("-tcd", "--test_case_dir", type=str, default="./data/py_test")
+    parser.add_argument("-od", "--output_dir", type=str, default="./data/js_test")
     
-    parser.add_argument("--generate_test_prompt", type=str, default="/workspace/vtw/data/prompts/generate-js-test.txt")
-    parser.add_argument("--analyze_test_prompt", type=str, default="/workspace/vtw/data/prompts/analyze-js-test.txt")
-    parser.add_argument("--revise_test_prompt", type=str, default="/workspace/vtw/data/prompts/revise-js-test.txt")
+    parser.add_argument("--generate_test_prompt", type=str, default="./data/prompts/generate-js-test.txt")
+    parser.add_argument("--analyze_test_prompt", type=str, default="./data/prompts/analyze-js-test.txt")
+    parser.add_argument("--revise_test_prompt", type=str, default="./data/prompts/revise-js-test.txt")
     
     parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-q8_0")
     

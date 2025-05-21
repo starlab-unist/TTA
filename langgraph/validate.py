@@ -8,9 +8,9 @@ def parse_args():
     
     parser = ArgumentParser()
     
-    parser.add_argument("--test_py_folder", type=str, default="/workspace/vtw/data/test-py")
-    parser.add_argument("--test_js_folder", type=str, default="/workspace/vtw/result/qwen/3b-test-js")
-    parser.add_argument("-o", "--output_dir", type=str, default="/workspace/vtw/result/qwen/3b-report.txt")
+    parser.add_argument("--test_py_folder", type=str, default="./data/test-py")
+    parser.add_argument("--test_js_folder", type=str, default="./result/qwen/3b-test-js")
+    parser.add_argument("-o", "--output_dir", type=str, default="./result/qwen/3b-report.txt")
     
     return parser.parse_args()
 

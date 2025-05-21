@@ -1,0 +1,22 @@
+--- projects/Complex.js/complex.js      2025-05-14 04:08:17.416237030 +0000
++++ buggy/Complex.js/complex.js 2025-05-21 06:26:03.968216251 +0000
+@@ -1254,8 +1254,8 @@
+       places = Math.pow(10, places || 0);
+
+       return new Complex(
+-        Math.round(this['re'] * places) / places,
+-        Math.round(this['im'] * places) / places);
++        Math.round(this['re']) / places,
++        Math.round(this['im']) / places);
+     },
+
+     /**
+@@ -1330,7 +1330,7 @@
+         ret += "-";
+       }
+
+-      if (1 !== b) { // b is the absolute imaginary part
++      if (b !== 0) { // b is the absolute imaginary part
+         ret += b;
+       }
+       return ret + "i";

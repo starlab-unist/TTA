@@ -1,0 +1,22 @@
+--- projects/pull-stream/throughs/filter.js     2025-05-14 04:10:31.519335341 +0000
++++ buggy/pull-stream/throughs/filter.js        2025-05-21 06:11:25.073422463 +0000
+@@ -12,7 +12,7 @@
+         loop = false
+         sync = true
+         read(end, function (end, data) {
+-          if(!end && !test(data))
++          if(!end && test(data))
+             return sync ? loop = true : next(end, cb)
+           cb(end, data)
+         })
+--- projects/pull-stream/sources/once.js        2025-05-14 04:10:31.519335341 +0000
++++ buggy/pull-stream/sources/once.js   2025-05-21 06:08:48.947392676 +0000
+@@ -6,7 +6,7 @@
+     if(abort)
+       return abortCb(cb, abort, onAbort)
+     if(value != null) {
+-      var _value = value; value = null
++      var _value = null;
+       cb(null, _value)
+     } else
+       cb(true)

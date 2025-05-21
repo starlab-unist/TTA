@@ -1,0 +1,19 @@
+--- projects/memfs/lib/volume.js        2025-05-21 04:50:18.152255103 +0000
++++ buggy/memfs/lib/volume.js   2025-05-21 08:11:23.512543073 +0000
+@@ -562,7 +562,7 @@
+     };
+     // Generates 6 character long random string, used by `mkdtemp`.
+     Volume.prototype.genRndStr = function () {
+-        var str = (Math.random() + 1).toString(36).substr(2, 6);
++        var str = (Math.random()).toString(36).substr(2, 6);
+         if (str.length === 6)
+             return str;
+         else
+@@ -1342,7 +1342,6 @@
+     Volume.prototype.accessSync = function (path, mode) {
+         if (mode === void 0) { mode = F_OK; }
+         var filename = pathToFilename(path);
+-        mode = mode | 0;
+         this.accessBase(filename, mode);
+     };
+     Volume.prototype.access = function (path, a, b) {

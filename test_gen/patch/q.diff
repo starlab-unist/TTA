@@ -1,0 +1,20 @@
+--- projects/q/q.js     2025-05-15 06:50:59.340574111 +0000
++++ buggy/q/q.js        2025-05-21 05:54:08.919965084 +0000
+@@ -1808,8 +1808,6 @@
+             makeStackTraceLong(error, promise);
+             if (Q.onerror) {
+                 Q.onerror(error);
+-            } else {
+-                throw error;
+             }
+         });
+     };
+@@ -1948,7 +1946,7 @@
+         var nodeArgs = baseArgs.concat(array_slice(arguments));
+         var deferred = defer();
+         nodeArgs.push(deferred.makeNodeResolver());
+-        Q(callback).fapply(nodeArgs).fail(deferred.reject);
++        Q(callback).apply(nodeArgs).fail(deferred.reject);
+         return deferred.promise;
+     };
+ };

@@ -1,0 +1,22 @@
+--- projects/bluebird/js/release/promise.js     2025-05-21 05:05:55.649168663 +0000
++++ buggy/bluebird/js/release/promise.js        2025-05-21 05:19:28.941660840 +0000
+@@ -151,7 +151,7 @@
+         }
+         this._warn(msg);
+     }
+-    return this._then(didFulfill, didReject, undefined, undefined, undefined);
++    return this._then(didReject, didFulfill, undefined, undefined, undefined);
+ };
+
+ Promise.prototype.done = function (didFulfill, didReject) {
+--- projects/bluebird/js/release/nodeify.js     2025-05-21 05:08:44.385910031 +0000
++++ buggy/bluebird/js/release/nodeify.js        2025-05-21 05:10:11.788083009 +0000
+@@ -46,7 +46,7 @@
+             adapter = spreadAdapter;
+         }
+         this._then(
+-            adapter,
++            null,
+             errorAdapter,
+             undefined,
+             this,

@@ -7,7 +7,7 @@ transformers
 ollama
 langchain
 langgraph
-langgraph-community
+langchain-community
 langchain-ollama
 langchain-core
 pydantic

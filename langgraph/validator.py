@@ -521,7 +521,7 @@ def validateInput(pythonDir, jsDir):
         ],
         template_format="jinja2",
     )
-    model_id = "qwen2.5-coder:32b-instruct-q16_0"
+    model_id = "qwen2.5-coder:32b-instruct-q8_0"
     llm = ChatOllama(model=MODEL_ID, temperature=0.0)
     prompt | llm
 

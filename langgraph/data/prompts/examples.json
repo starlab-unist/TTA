@@ -1,0 +1,6 @@
+{
+    "Python": {
+        "Source": "import re\nfrom collections import Counter\n\ndef most_common_word(text):\n    words = re.findall(r'\b\\w+\b', text.lower())\n    \n    if not words:\n        return None\n    \n    counts = Counter(words)\n    return counts.most_common(1)[0][0]",
+        "Target": "import re\nfrom collections import Counter\n\ndef get_most_frequent_word(sentence):\n    token_list = re.findall(r'\\w+', sentence.lower())\n\n    if len(token_list) == 0:\n        return None\n\n    frequency = Counter(token_list)\n    most_frequent = frequency.most_common(1)\n\n    return most_frequent[0][0] if most_frequent else None\n# method name: most_common_word -> get_most_frequent_word\n# parameter name: text -> sentence\n# variable name: words -> token_list, counts -> frequency\n# use the if len(...) == 0, without overlap\n# convert the return syntax"
+    }
+}

@@ -27,10 +27,12 @@ def parse_args():
     
     parser.add_argument("-d", "--data_dir", type=str, default="./data/humaneval-python.jsonl")
     parser.add_argument("-s", "--save_dir", type=str, default="./data/semantic_equiv")
+    parser.add_argument("-ex", "--examples", type=str, default="./data/prompts/examples.json")
     parser.add_argument("-sp", "--system_prompt", type=str, default="./data/prompts/generate-equiv-system.txt")
     parser.add_argument("-up", "--user_prompt", type=str, default="./data/prompts/generate-equiv-user.txt")
     
     parser.add_argument("-m", "--model", type=str, default="Qwen/Qwen2.5-Coder-32B-Instruct")
+    parser.add_argument("-l", "--language", type=str, choices=["Python", "Java", "JavaScript"], default="Python")
     parser.add_argument("-b", "--batch_size", type=int, default=32)
     parser.add_argument("-ml", "--max_length", type=int, default=1024)
     
@@ -74,6 +76,8 @@ def main(args):
     if total % args.batch_size != 0:
         n_iter += 1
 
+    examples = json.load(open(args.examples, 'r'))[args.language]
+
     idx = 0
     for batch_idx in tqdm(range(n_iter)):
         
@@ -87,7 +91,7 @@ def main(args):
             
             messages = [
                 {"role": "system", "content": system},
-                {"role": "user", "content": user.format(source=source)}
+                {"role": "user", "content": user.format(source_example=examples["Source"], target_example=examples["Target"], language=args.language.lower(), source=source)}
             ]
             
             inputs = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)

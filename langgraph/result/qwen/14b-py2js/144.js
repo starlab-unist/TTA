@@ -1,0 +1,10 @@
+function simplify(x, n) {
+    const [a, b] = x.split("/");
+    const [c, d] = n.split("/");
+    const numerator = parseInt(a) * parseInt(c);
+    const denom = parseInt(b) * parseInt(d);
+    if (numerator / denom === Math.floor(numerator / denom)) {
+        return true;
+    }
+    return false;
+}

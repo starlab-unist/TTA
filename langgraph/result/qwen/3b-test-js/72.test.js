@@ -1,0 +1,62 @@
+// Source Code
+function willItFly(q, w) {
+    if (q.reduce((acc, val) => acc + val, 0) > w) {
+        return false;
+    }
+
+    let i = 0;
+    let j = q.length - 1;
+    while (i < j) {
+        if (q[i] !== q[j]) {
+            return false;
+        }
+        i++;
+        j--;
+    }
+    return true;
+}
+
+// Transformed Code (Semantically Equivalent)
+function canItTakeOff(weights, maxWeight) {
+    let totalWeight = 0;
+
+    for (let i = 0; i < weights.length; i++) {
+        totalWeight += weights[i];
+    }
+
+    if (totalWeight > maxWeight) {
+        return false;
+    }
+
+    let start = 0;
+    let end = weights.length - 1;
+    while (start < end) {
+        if (weights[start] !== weights[end]) {
+            return false;
+        }
+        start++;
+        end--;
+    }
+
+    return true;
+}
+
+// Test Cases
+describe('willItFly vs canItTakeOff equivalence tests', () => {
+    const testCases = [
+        [[1, 2, 3, 2, 1], 10],
+        [[1, 2, 3, 4, 5], 15],
+        [[1, 1, 1, 1], 4],
+        [[1, 2, 2, 1], 6],
+        [[1], 1],
+        [[], 0],
+        [[5, 5, 5, 5], 20],
+        [[5, 5, 5, 5], 19],
+        [[1, 2, 3, 4, 3, 2, 1], 20],
+        [[1, 2, 3, 4, 5, 6, 7], 28]
+    ];
+
+    test.each(testCases)('Input: %j, %d', (q, w) => {
+        expect(willItFly(q, w)).toBe(canItTakeOff(q, w));
+    });
+});

@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("-l", "--language", type=str, choices=["Python", "Java", "JavaScript"], default="Python")
     parser.add_argument("-b", "--batch_size", type=int, default=32)
     parser.add_argument("-ml", "--max_length", type=int, default=1024)
+    parser.add_argument("-t", "--temperature", type=float, default=1.0)
     
     parser.add_argument("--seed", type=int, default=42)
     
@@ -108,6 +109,7 @@ def main(args):
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 max_new_tokens=args.max_length,
+                temperature=args.temperature,
             )
             
         responses = tokenizer.batch_decode([

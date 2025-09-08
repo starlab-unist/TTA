@@ -1,9 +1,9 @@
 echo "RUNNING TO GENERATE THE SEMANTIC EQUIVALENT CODE..."
-python generate-equiv.py \
+python generate_equiv.py \
     -s ./data/equiv
 
 echo "RUNNING TO GENERATE THE PYTHON TEST CASES..."
-python generate-test.py \
+python generate_test.py \
     -td ./data/equiv \
     -od ./data/test-py
 
@@ -20,7 +20,7 @@ python translate.py \
     -m Qwen/Qwen2.5-Coder-32B-Instruct
 
 echo "ANALYZING THE TRANSLATED CODES BY QWEN-32B MODEL..."
-python generate-test-js.py \
+python generate_test_js.py \
     -sd ./result/qwen/32b-py2js \
     -td ./result/qwen/32b-eq2js \
     -tcd ./data/test-py \
@@ -39,7 +39,7 @@ python translate.py \
     -m Qwen/Qwen2.5-Coder-14B-Instruct
 
 echo "ANALYZING THE TRANSLATED CODES BY QWEN-14B MODEL..."
-python generate-test-js.py \
+python generate_test_js.py \
     -sd ./result/qwen/14b-py2js \
     -td ./result/qwen/14b-eq2js \
     -tcd ./data/test-py \
@@ -58,7 +58,7 @@ python translate.py \
     -m Qwen/Qwen2.5-Coder-7B-Instruct
 
 echo "ANALYZING THE TRANSLATED CODES BY QWEN-7B MODEL..."
-python generate-test-js.py \
+python generate_test_js.py \
     -sd ./result/qwen/7b-py2js \
     -td ./result/qwen/7b-eq2js \
     -tcd ./data/test-py \
@@ -77,7 +77,7 @@ python translate.py \
     -m Qwen/Qwen2.5-Coder-3B-Instruct
 
 echo "ANALYZING THE TRANSLATED CODES BY QWEN-3B MODEL..."
-python generate-test-js.py \
+python generate_test_js.py \
     -sd ./result/qwen/3b-py2js \
     -td ./result/qwen/3b-eq2js \
     -tcd ./data/test-py \

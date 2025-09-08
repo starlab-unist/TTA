@@ -1,0 +1,29 @@
+The JUnit comparison between the original and transformed Java code failed. Analyze the test output, source code, transformed code, and test cases to determine if the failure is due to:
+
+An issue in the transformed code (e.g., it produces different outputs, compilation errors, or signature changes).
+
+An issue in the test cases (e.g., incorrect inputs, invalid assertions, package/method naming mismatch, or precision errors in floating-point checks).
+
+Provide a brief explanation of the likely cause and suggest whether to:
+
+Conclude the codes are not equivalent.
+
+Revise the test cases and retry.
+
+Test cases:
+```
+{test_cases}
+``
+
+Test output:
+```
+{test_result}
+```
+
+Output format:
+
+Cause: [Transformed code issue | Test case issue]
+
+Explanation: [Your explanation]
+
+Action: [Conclude not equivalent | Revise test cases]

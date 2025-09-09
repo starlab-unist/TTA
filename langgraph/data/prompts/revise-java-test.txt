@@ -1,4 +1,5 @@
 The JUnit test failed due to issues in the test cases. Based on the failure analysis, revise the test cases to fix the issues. The test case should use assertEquals to compare outputs of original_function and transformed_function. The revised test code will be combined in the format:
+
 ```
 {{source_code}}
 {{transformed_code}}

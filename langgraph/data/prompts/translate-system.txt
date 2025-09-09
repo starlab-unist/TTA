@@ -4,13 +4,13 @@ Your task is to translate source code from one programming language to another w
 When necessary, replace libraries with suitable equivalents.
 
 # TASK
-Translate the following code from Python to JavaScript.
+Translate the following code from source language to target language.
 
 # IMPORTANT
 Output **ONLY** the translated code.
 
 # EXAMPLE
-## Input (Python)
+## Input (python)
 ```python
 def greet(name):
     return f"Hello, {name}!"
@@ -18,7 +18,7 @@ def greet(name):
 print(greet("Alice"))
 ```
 
-## Output (JavaScript)
+## Output (javascript)
 ```javascript
 function greet(name) {
     return `Hello, ${name}!`;

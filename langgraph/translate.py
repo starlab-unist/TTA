@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument("-sp", "--system_prompt_dir", type=str, default="./data/prompts/translate-system.txt")
     parser.add_argument("-up", "--user_prompt_dir", type=str, default="./data/prompts/translate-user.txt")
 
-    parser.add_argument("-m", "--model", type=str, default="Qwen/Qwen2.5-Coder-32B-Instruct")
+    parser.add_argument("-m", "--model", type=str, default="Qwen/Qwen2.5-Coder-1B-Instruct")
 
     parser.add_argument("-b", "--batch_size", type=int, default=32)
     parser.add_argument("-ml", "--max_length", type=int, default=1024)

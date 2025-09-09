@@ -149,7 +149,7 @@ def run_cmd(cmd: List[str], timeout: int = 30) -> subprocess.CompletedProcess:
 
 def normalize_test_class(code: str, idx: int) -> Tuple[str, str]:
 
-    class_name = f"human_eval_{idx}"
+    class_name = f"HumanEval_{idx}"
 
     if re.search(r"\bpublic\s+class\s+\w+\b", code):
         code = re.sub(r"\bpublic\s+class\s+\w+\b", f"public class {class_name}", code, count=1)
@@ -188,20 +188,21 @@ class State(TypedDict):
     is_failure: bool
     failure_analysis: str
     failure_responding: str
-
+    _run_root: os.PathLike
+    _idx: int
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("-sd", "--source_dir", type=str, default="./result/qwen/temp-py2java")
-    parser.add_argument("-td", "--transform_dir", type=str, default="./result/qwen/temp-eq2java")
+    parser.add_argument("-sd", "--source_dir", type=str, default="./result/qwen/3b-py2java")
+    parser.add_argument("-td", "--transform_dir", type=str, default="./result/qwen/3b-eq2java")
     parser.add_argument("-tcd", "--test_case_dir", type=str, default="./data/test-py")
-    parser.add_argument("-od", "--output_dir", type=str, default="./result/qwen/java_test")
+    parser.add_argument("-od", "--output_dir", type=str, default="./result/qwen/3b-test-java")
 
     parser.add_argument("--generate_test_prompt", type=str, default="./data/prompts/generate-java-test.txt")
     parser.add_argument("--analyze_test_prompt", type=str, default="./data/prompts/analyze-java-test.txt")
     parser.add_argument("--revise_test_prompt", type=str, default="./data/prompts/revise-java-test.txt")
 
-    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-fp16")
+    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-q8_0")
 
     parser.add_argument("--seed", type=int, default=42)
     # 추가: JUnit5 standalone jar 위치
@@ -245,8 +246,6 @@ def main(args):
         read_file(args.analyze_test_prompt),
         template_format="jinja2",   # ← 추가
     )
-
-
 
     def generate_test_inputs(state: State) -> State:
         response = llm.invoke(
@@ -416,8 +415,6 @@ def main(args):
             "is_failure": False,
             "failure_analysis": "",
             "failure_responding": "end",
-
-
             "_run_root": run_root,  
             "_idx": idx,            
         } 

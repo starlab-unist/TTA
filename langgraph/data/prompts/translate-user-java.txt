@@ -1,0 +1,7 @@
+Translate this code to Java code. Set the class name to {class_name} when translating to Java.
+Do not create the main function, only generate the function you are asked to do.
+
+## Input (Python)
+```python
+{source_code}
+```

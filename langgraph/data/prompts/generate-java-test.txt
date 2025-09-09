@@ -3,9 +3,9 @@ The test case should use assertEquals to compare outputs.
 There are test cases based on Python unittest in the input. Use the input used in test cases.
 The generated test code will be combined with the source and transformed code in the format:
 
-{source_code}
-{transformed_code}
-{test_cases}
+{{source_code}}
+{{transformed_code}}
+{{test_cases}}
 
 
 - The source code defines a function original_function.
@@ -109,11 +109,10 @@ public class equiv_test_0 {
 
 
 Now, Your Turn!
-```java
 Source code:
-```
+```java
 {source_code}
-
+```
 
 Transformed code:
 ```java

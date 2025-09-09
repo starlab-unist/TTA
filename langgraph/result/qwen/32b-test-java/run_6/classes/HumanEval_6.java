@@ -1,6 +1,10 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class HumanEval_6 {
     public static List<Integer> parseNestedParens(String parenString) {
         List<Integer> result = new ArrayList<>();
@@ -61,9 +65,6 @@ class HumanEval_6_Transformed {
     }
 }
 
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_6 {
 

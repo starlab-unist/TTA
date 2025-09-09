@@ -1,6 +1,6 @@
 import java.util.List;
 
-public class HumanEval_0 {
+public class HumanEval_0_Test {
     public static boolean hasCloseElements(List<Double> numbers, double threshold) {
         for (int idx = 0; idx < numbers.size(); idx++) {
             for (int idx2 = 0; idx2 < numbers.size(); idx2++) {

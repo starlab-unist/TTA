@@ -5,7 +5,7 @@ import random
 import shutil
 import subprocess
 from argparse import ArgumentParser
-from typing import TypedDict, Optional, Dict, Any, List, Tuple  # ← Tuple 추가
+from typing import TypedDict, Optional, Dict, Any, List, Tuple
 
 import numpy as np
 import torch
@@ -85,7 +85,6 @@ def list_indexed_files(dir_path: str) -> Dict[int, str]:
     return out
 
 
-
 def align_triplets(
     source_map: Dict[int, str],
     transform_map: Dict[int, str],
@@ -100,11 +99,10 @@ def align_triplets(
 
 
 def extract_codeblock(text: str, langs=("java", "")) -> str:
-
     blocks = []
     for lang in langs:
         if lang:
-            pat = rf"```{lang}\s+(.*?)```"
+            pat = rf"```{lang}\s*(.*?)```"
         else:
             pat = r"```\s+(.*?)```"
         blocks += re.findall(pat, text, flags=re.DOTALL)
@@ -139,7 +137,8 @@ def extract_test_cases_hint(source_code: str) -> str:
     start_idx = 0
     for i, line in enumerate(lines):
         if line.strip().startswith("class"):
-            start_idx = i - 1
+            start_idx = max(0, i - 1)  # 안전한 인덱싱
+            break
     return "\n".join(lines[start_idx:])
 
 
@@ -148,19 +147,27 @@ def run_cmd(cmd: List[str], timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def normalize_test_class(code: str, idx: int) -> Tuple[str, str]:
-
+    """테스트 클래스를 정규화하고 필요한 import 추가"""
     class_name = f"HumanEval_{idx}"
-
+    
+    # 기존 import 확인
+    has_junit_imports = "import org.junit" in code
+    
+    # 클래스 이름 변경
     if re.search(r"\bpublic\s+class\s+\w+\b", code):
         code = re.sub(r"\bpublic\s+class\s+\w+\b", f"public class {class_name}", code, count=1)
     elif re.search(r"\bclass\s+\w+\b", code):
         code = re.sub(r"\bclass\s+\w+\b", f"class {class_name}", code, count=1)
     else:
-        header = (
-            "import org.junit.jupiter.api.*;\n"
-            "import static org.junit.jupiter.api.Assertions.*;\n\n"
-        )
-        code = f"{header}public class {class_name} {{\n{code}\n}}\n"
+        # 클래스 정의가 없는 경우만 전체 래핑
+        if not has_junit_imports:
+            header = (
+                "import org.junit.jupiter.api.*;\n"
+                "import static org.junit.jupiter.api.Assertions.*;\n\n"
+            )
+            code = f"{header}public class {class_name} {{\n{code}\n}}\n"
+        else:
+            code = f"public class {class_name} {{\n{code}\n}}\n"
 
     return code, class_name
 
@@ -168,11 +175,11 @@ def normalize_test_class(code: str, idx: int) -> Tuple[str, str]:
 def route_after_run(state: "State") -> str:
     return "analyze_failure" if state.get("is_failure") else "end"
 
+
 def route_after_analyze(state: "State") -> str:
     if state.get("retry_count", 0) >= 3:
         return "end"
     return "revise_test_cases" if state.get("failure_responding") == "revise_test_cases" else "end"
-
 
 
 class State(TypedDict):
@@ -186,10 +193,12 @@ class State(TypedDict):
     run_stderr: str
     retry_count: int
     is_failure: bool
+    error_type: str  # "compile", "runtime", "timeout", ""
     failure_analysis: str
     failure_responding: str
     _run_root: os.PathLike
     _idx: int
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -202,18 +211,14 @@ def parse_args():
     parser.add_argument("--analyze_test_prompt", type=str, default="./data/prompts/analyze-java-test.txt")
     parser.add_argument("--revise_test_prompt", type=str, default="./data/prompts/revise-java-test.txt")
 
-    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-q8_0")
-
+    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-fp16")
     parser.add_argument("--seed", type=int, default=42)
-    # 추가: JUnit5 standalone jar 위치
     parser.add_argument("--junit_jar", type=str, default="./data/junit.jar")
 
     return parser.parse_args()
 
 
-
 def main(args):
-
     source_dir = args.source_dir if args.source_dir.endswith(os.sep) else args.source_dir + os.sep
     transform_dir = args.transform_dir if args.transform_dir.endswith(os.sep) else args.transform_dir + os.sep
     test_case_dir = args.test_case_dir if args.test_case_dir.endswith(os.sep) else args.test_case_dir + os.sep
@@ -225,18 +230,18 @@ def main(args):
     transform_map = list_indexed_files(transform_dir)
     test_map = list_indexed_files(test_case_dir)
     triplets = align_triplets(source_map, transform_map, test_map)
-    print("[DEBUG] source idx:", list(source_map.keys())[:10])
-    print("[DEBUG] transform idx:", list(transform_map.keys())[:10])
-    print("[DEBUG] test idx:", list(test_map.keys())[:10])
-    print("[DEBUG] common triplets:", len(triplets))
+    
+    print(f"[INFO] Source files: {len(source_map)}")
+    print(f"[INFO] Transform files: {len(transform_map)}")
+    print(f"[INFO] Test files: {len(test_map)}")
+    print(f"[INFO] Common triplets: {len(triplets)}")
+    
     if not triplets:
-        print("No common indices across source/transform/test. Check directory paths and file names.")
+        print("[ERROR] No common indices across source/transform/test. Check directory paths and file names.")
         return
-
 
     set_seed(args.seed)
     llm = ChatOllama(model=args.model, base_url="http://localhost:11434")
-
 
     gen_prompt = ChatPromptTemplate.from_template(
         read_file(args.generate_test_prompt),
@@ -244,44 +249,61 @@ def main(args):
     )
     ana_prompt = ChatPromptTemplate.from_template(
         read_file(args.analyze_test_prompt),
-        template_format="jinja2",   # ← 추가
+        template_format="jinja2",
+    )
+    rev_prompt = ChatPromptTemplate.from_template(
+        read_file(args.revise_test_prompt),
+        template_format="jinja2",
     )
 
     def generate_test_inputs(state: State) -> State:
-        response = llm.invoke(
-            gen_prompt.format_messages(
-                source_code=state["source_code"],            
-                transformed_code=state["transformed_code"],  
-                test_cases=state["source_test_cases"],      
+        """LLM을 사용해 테스트 코드 생성"""
+        try:
+            response = llm.invoke(
+                gen_prompt.format_messages(
+                    source_code=state["source_code"],            
+                    transformed_code=state["transformed_code"],  
+                    test_cases=state["source_test_cases"],      
+                )
             )
-        )
-        code_block = extract_codeblock(response.content, langs=("java", ""))
-        return {"generated_test_code": code_block}
+            code_block = extract_codeblock(response.content, langs=("java", ""))
+            return {"generated_test_code": code_block}
+        except Exception as e:
+            print(f"[ERROR] LLM generation failed: {e}")
+            return {"generated_test_code": "", "is_failure": True, "error_type": "generation"}
 
     def write_and_compile(state: State) -> State:
-
-        run_root = state["_run_root"] 
+        """테스트 코드와 CUT를 파일로 쓰고 컴파일"""
+        run_root = state["_run_root"]
         idx = state["_idx"]
         classes_dir = os.path.join(run_root, "classes")
         ensure_dir(classes_dir)
 
- 
+        # CUT (Code Under Test) 작성
         cut_code = state["transformed_code"]
         cut_pkg = extract_package(cut_code)
         cut_public = extract_public_class_name(cut_code) or "CutClass"
         cut_dir = package_to_dir(classes_dir, cut_pkg)
         cut_path = os.path.join(cut_dir, f"{cut_public}.java")
         write_file(cut_path, cut_code)
-
-    
+     
+        # 테스트 코드 작성
         test_code_raw = state["generated_test_code"]
+        if not test_code_raw:
+            return {
+                "compile_stdout": "",
+                "compile_stderr": "No test code generated",
+                "is_failure": True,
+                "error_type": "generation"
+            }
+        
         test_code_norm, class_name = normalize_test_class(test_code_raw, idx)
-        test_pkg = extract_package(test_code_norm)  
+        test_pkg = extract_package(test_code_norm)
         test_dir = package_to_dir(classes_dir, test_pkg)
         test_path = os.path.join(test_dir, f"{class_name}.java")
         write_file(test_path, test_code_norm)
 
-    
+        # 컴파일
         cp = cp_sep().join([classes_dir, args.junit_jar])
         java_files = []
         for root, _, files in os.walk(classes_dir):
@@ -289,75 +311,103 @@ def main(args):
                 if name.endswith(".java"):
                     java_files.append(os.path.join(root, name))
 
-        cmd = ["javac", "-cp", cp] + java_files
+        cmd = ["javac", "-cp", cp, "-d", classes_dir] + java_files
         try:
             proc = run_cmd(cmd, timeout=40)
             compile_stdout, compile_stderr, rc = proc.stdout, proc.stderr, proc.returncode
+            error_type = "compile" if rc != 0 else ""
         except subprocess.TimeoutExpired as e:
             compile_stdout, compile_stderr, rc = "", f"Compile timeout: {e}", 1
+            error_type = "timeout"
 
         return {
             "compile_stdout": compile_stdout,
             "compile_stderr": compile_stderr,
-            "is_failure": rc != 0
+            "is_failure": rc != 0,
+            "error_type": error_type,
         }
 
     def run_tests(state: State) -> State:
+        """JUnit 테스트 실행"""
         if state["is_failure"]:
-            return {"run_stdout": "", "run_stderr": "", "is_failure": True}
+            return {"run_stdout": "", "run_stderr": "Skipped due to compile failure", "is_failure": True}
 
         run_root = state["_run_root"]
         classes_dir = os.path.join(run_root, "classes")
 
+        # 모든 테스트 클래스 실행
         cmd = [
             "java", "-jar", args.junit_jar,
-            "-cp", classes_dir,
-            "--scan-class-path"
+            "execute",
+            "--class-path", classes_dir,
+            "--scan-class-path",
+            "--details", "tree",  # 상세 출력
         ]
+        
         try:
             proc = run_cmd(cmd, timeout=45)
             run_stdout, run_stderr, rc = proc.stdout, proc.stderr, proc.returncode
+            error_type = "runtime" if rc != 0 else ""
         except subprocess.TimeoutExpired as e:
             run_stdout, run_stderr, rc = "", f"Run timeout: {e}", 1
+            error_type = "timeout"
 
         return {
             "run_stdout": run_stdout,
             "run_stderr": run_stderr,
-            "is_failure": rc != 0
+            "is_failure": rc != 0,
+            "error_type": error_type,
         }
 
     def analyze_failure(state: State) -> State:
-        response = llm.invoke(
-            ana_prompt.format_messages(
-                test_cases=state["generated_test_code"],
-                test_result=(state.get("compile_stderr", "") + "\n" +
-                             state.get("run_stdout", "") + "\n" +
-                             state.get("run_stderr", "")),
+        """실패 분석 및 다음 액션 결정"""
+        try:
+            response = llm.invoke(
+                ana_prompt.format_messages(
+                    test_cases=state["generated_test_code"],
+                    test_result=(
+                        f"=== Compile Output ===\n"
+                        f"{state.get('compile_stdout', '')}\n"
+                        f"{state.get('compile_stderr', '')}\n"
+                        f"=== Run Output ===\n"
+                        f"{state.get('run_stdout', '')}\n"
+                        f"{state.get('run_stderr', '')}\n"
+                    ),
+                )
             )
-        )
-        analysis = response.content.strip()
+            analysis = response.content.strip()
 
-        next_step = "end"
-        for line in analysis.splitlines():
-            if "Action" in line and "Revise" in line:
-                next_step = "revise_test_cases"
-                break
+            # 다음 액션 결정
+            next_step = "end"
+            for line in analysis.splitlines():
+                if "Action" in line and "Revise" in line:
+                    next_step = "revise_test_cases"
+                    break
 
-        return {"failure_analysis": analysis, "failure_responding": next_step}
+            return {"failure_analysis": analysis, "failure_responding": next_step}
+        except Exception as e:
+            print(f"[ERROR] Analysis failed: {e}")
+            return {"failure_analysis": str(e), "failure_responding": "end"}
 
     def revise_test_cases(state: State) -> State:
-        response = llm.invoke(
-            ChatPromptTemplate.from_template(
-                read_file(args.revise_test_prompt),
-                template_format="jinja2",  
-            ).format_messages(
-                test_cases=state["generated_test_code"],
-                failure_analysis=state["failure_analysis"],
+        """실패 분석 기반 테스트 코드 수정"""
+        try:
+            response = llm.invoke(
+                rev_prompt.format_messages(
+                    test_cases=state["generated_test_code"],
+                    failure_analysis=state["failure_analysis"],
+                )
             )
-        )
-        code_block = extract_codeblock(response.content, langs=("java", ""))
-        return {"generated_test_code": code_block, "retry_count": state["retry_count"] + 1}
+            code_block = extract_codeblock(response.content, langs=("java", ""))
+            return {
+                "generated_test_code": code_block, 
+                "retry_count": state.get("retry_count", 0) + 1
+            }
+        except Exception as e:
+            print(f"[ERROR] Revision failed: {e}")
+            return {"retry_count": state.get("retry_count", 0) + 1}
 
+    # LangGraph 워크플로우 구성
     workflow = StateGraph(State)
     workflow.add_node("generate_test_inputs", generate_test_inputs)
     workflow.add_node("write_and_compile", write_and_compile)
@@ -376,7 +426,6 @@ def main(args):
             "end": END,
         },
     )
-
     workflow.add_conditional_edges(
         "analyze_failure",
         route_after_analyze,
@@ -385,13 +434,19 @@ def main(args):
             "end": END,
         },
     )
-
     workflow.add_edge("revise_test_cases", "write_and_compile")
 
     graph = workflow.compile()
 
+    # 메인 처리 루프
+    success_count = 0
+    fail_count = 0
+    
     for idx, src_path, trans_path, test_hint_path in triplets:
-        print(f"--- {idx} ---")
+        print(f"\n{'='*50}")
+        print(f"Processing index: {idx}")
+        print(f"{'='*50}")
+        
         run_root = os.path.join(output_dir, f"run_{idx}")
         if os.path.exists(run_root):
             shutil.rmtree(run_root)
@@ -413,6 +468,7 @@ def main(args):
             "run_stderr": "",
             "retry_count": 0,
             "is_failure": False,
+            "error_type": "",
             "failure_analysis": "",
             "failure_responding": "end",
             "_run_root": run_root,  
@@ -421,24 +477,30 @@ def main(args):
 
         result: Dict[str, Any] = graph.invoke(initial_state)
 
-    
-        result_to_save = dict(result)
-        result_to_save["index"] = idx
- 
-        result_to_save.pop("_run_root", None)
+        # 성공/실패 카운트
+        if not result.get("is_failure", False):
+            success_count += 1
+            print(f"[SUCCESS] Index {idx} passed all tests")
+        else:
+            fail_count += 1
+            print(f"[FAILURE] Index {idx} failed with error type: {result.get('error_type', 'unknown')}")
 
-        write_file(os.path.join(output_dir, "report.txt"), json.dumps(result_to_save, ensure_ascii=False) + "\n")
+        # 간단한 출력
+        if result.get("compile_stderr"):
+            print(f"[Compile Error]\n{result['compile_stderr'][:500]}")
+        if result.get("run_stderr"):
+            print(f"[Run Error]\n{result['run_stderr'][:500]}")
+        if result.get("failure_analysis"):
+            print(f"[Analysis]\n{result['failure_analysis'][:500]}")
 
-
-        print("[compile stderr]")
-        print(result.get("compile_stderr", ""))
-        print("[run stdout]")
-        print(result.get("run_stdout", ""))
-        print("[run stderr]")
-        print(result.get("run_stderr", ""))
-        print("[analysis]")
-        print(result.get("failure_analysis", ""))
-        print("-------")
+    # 최종 통계
+    print(f"\n{'='*50}")
+    print(f"Final Statistics:")
+    print(f"  Total: {len(triplets)}")
+    print(f"  Success: {success_count}")
+    print(f"  Failed: {fail_count}")
+    print(f"  Success Rate: {success_count/len(triplets)*100:.2f}%")
+    print(f"{'='*50}")
 
 
 if __name__ == "__main__":

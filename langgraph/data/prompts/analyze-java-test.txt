@@ -1,29 +1,47 @@
 The JUnit comparison between the original and transformed Java code failed. Analyze the test output, source code, transformed code, and test cases to determine if the failure is due to:
 
-An issue in the transformed code (e.g., it produces different outputs, compilation errors, or signature changes).
-
-An issue in the test cases (e.g., incorrect inputs, invalid assertions, package/method naming mismatch, or precision errors in floating-point checks).
+- An issue in the transformed code (e.g., it produces different outputs, compilation errors, or signature changes).
+- An issue in the test cases (e.g., incorrect inputs, invalid assertions, package/method naming mismatch, or precision errors in floating-point checks).
 
 Provide a brief explanation of the likely cause and suggest whether to:
+- Conclude the codes are not equivalent.
+- Revise the test cases and retry.
 
-Conclude the codes are not equivalent.
+Source code:
+```java
+{{ source_code }}
+```
 
-Revise the test cases and retry.
+Transformed code:
+```java
+{{ transformed_code }}
+```
 
 Test cases:
-```
-{test_cases}
+```java
+{{ test_cases }}
 ``
 
 Test output:
-```
-{test_result}
+```java
+{{test_result}}
 ```
 
-Output format:
+Decision rules (follow strictly):
 
+If the compile error references the test class, missing imports/annotations (Stream, Arguments, @MethodSource, etc.), or packaging issues → Cause: Test case issue → Action: Revise test cases (add required imports, fix class/package names).
+
+If the compile error references the transformed code file or a signature mismatch between functions → Cause: Transformed code issue → Action: Conclude not equivalent (unless it’s a trivial name/visibility fix, then Revise if appropriate).
+
+If tests run and assertion differences occur:
+
+Differences due to floating-point tolerance or order/whitespace sensitivity in tests → Test case issue → Revise test cases (use tolerant assertions or normalize).
+
+Clear semantic mismatch across multiple inputs → Transformed code issue → Conclude not equivalent.
+
+If logs are empty or placeholders appear (e.g., { test_result }), treat as Test case issue (prompting/fixture problem) → Revise test cases.
+
+Output format (exactly these three lines):
 Cause: [Transformed code issue | Test case issue]
-
-Explanation: [Your explanation]
-
+Explanation: [one short paragraph]
 Action: [Conclude not equivalent | Revise test cases]

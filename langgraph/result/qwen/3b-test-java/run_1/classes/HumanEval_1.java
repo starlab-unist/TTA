@@ -1,13 +1,14 @@
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.Arguments;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import java.util.*;
+import java.util.stream.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.api.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_1 {
 
@@ -81,17 +82,63 @@ public class HumanEval_1 {
         "((a)(b))(c)"
     };
 
-    private static Stream<Arguments> provideTestCases() {
-        return Arrays.stream(testCases).map(Arguments::of);
+    @Test
+    public void test_0() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[0]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[0]));
     }
 
-    @DisplayName("Test separateParenGroups vs extractBalancedParentheses")
-    @ParameterizedTest(name = "{index} => input={0}")
-    @MethodSource("provideTestCases")
-    void testSeparateParenGroups_vs_extractBalancedParentheses(String input) {
-        assertEquals(
-            HumanEval_1_Source.separateParenGroups(input),
-            HumanEval_1_Transformed.extractBalancedParentheses(input)
-        );
+    @Test
+    public void test_1() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[1]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[2]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[2]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[3]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[3]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[4]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[4]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[5]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[5]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[6]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[6]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[7]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[7]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[8]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[8]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(HumanEval_1_Source.separateParenGroups(testCases[9]), 
+                     HumanEval_1_Transformed.extractBalancedParentheses(testCases[9]));
     }
 }

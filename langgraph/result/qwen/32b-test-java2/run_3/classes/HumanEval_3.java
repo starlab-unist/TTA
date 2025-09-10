@@ -1,17 +1,20 @@
+import java.util.*;
+import java.util.stream.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.api.*;
 import java.util.List;
 import java.util.stream.Stream;
-
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_3 {
 
-    // Source Code
-    static class SourceCode {
+    // Original Implementation
+    static class OriginalImpl {
         public boolean belowZero(List<Integer> operations) {
             int balance = 0;
 
@@ -26,8 +29,8 @@ public class HumanEval_3 {
         }
     }
 
-    // Transformed Code
-    static class TransformedCode {
+    // Transformed Implementation
+    static class TransformedImpl {
         public boolean checkNegativeBalance(List<Integer> transactions) {
             int currentBalance = 0;
 
@@ -44,34 +47,29 @@ public class HumanEval_3 {
         }
     }
 
-    // Test Cases
-    private static final Arguments[] testCases = {
-        Arguments.of(List.of(), false),
-        Arguments.of(List.of(1, 2, 3), false),
-        Arguments.of(List.of(-1, -2, -3), true),
-        Arguments.of(List.of(10, -5, -6), true),
-        Arguments.of(List.of(10, -5, 5), false),
-        Arguments.of(List.of(0, 0, 0), false),
-        Arguments.of(List.of(1, -1, 1, -1, 1, -2), true),
-        Arguments.of(List.of(-1, 1, -1, 1, -1, 1), true),
-        Arguments.of(List.of(1, 2, 3, -7), true),
-        Arguments.of(List.of(5, 5, 5, 5, -20), true)
-    };
-
+    // Method to provide test cases
     private static Stream<Arguments> provideTestCases() {
-        return Stream.of(testCases);
+        return Stream.of(
+            Arguments.of(List.of(), false),
+            Arguments.of(List.of(1, 2, 3), false),
+            Arguments.of(List.of(-1, -2, -3), true),
+            Arguments.of(List.of(10, -5, -6), true),
+            Arguments.of(List.of(10, -5, 5), false),
+            Arguments.of(List.of(0, 0, 0), false),
+            Arguments.of(List.of(1, -1, 1, -1, 1, -2), true),
+            Arguments.of(List.of(-1, 1, -1, 1, -1, 1), true),
+            Arguments.of(List.of(1, 2, 3, -7), true),
+            Arguments.of(List.of(5, 5, 5, 5, -20), true)
+        );
     }
 
+    // Parameterized test method
     @ParameterizedTest
     @MethodSource("provideTestCases")
-    @DisplayName("Testing equivalence of belowZero and checkNegativeBalance functions")
-    void belowZero_vs_checkNegativeBalance(List<Integer> inputOperations) {
-        SourceCode sourceInstance = new SourceCode();
-        TransformedCode transformedInstance = new TransformedCode();
+    public void testBelowZero(List<Integer> input, boolean expected) {
+        OriginalImpl original = new OriginalImpl();
+        TransformedImpl transformed = new TransformedImpl();
 
-        assertEquals(
-            sourceInstance.belowZero(inputOperations),
-            transformedInstance.checkNegativeBalance(inputOperations)
-        );
+        assertEquals(original.belowZero(input), transformed.checkNegativeBalance(input));
     }
 }

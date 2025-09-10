@@ -10,13 +10,13 @@ from typing import TypedDict, Optional, Dict, Any, List, Tuple
 
 import numpy as np
 import torch
-
+from string import Template
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_teddynote import logging
-
 from dotenv import load_dotenv
+from pydantic.v1 import BaseModel
 
 load_dotenv()
 
@@ -102,6 +102,10 @@ def align_triplets(
         out.append((i, source_map[i], transform_map[i], test_map[i]))
     return out
 
+def render_prompt_jinja2(path: str, **vars):
+    tpl = read_file(path)
+    return ChatPromptTemplate.from_template(tpl, template_format="jinja2").format_messages(**vars)
+
 
 def extract_codeblock(text: str, langs=("java", "")) -> str:
     blocks = []
@@ -151,30 +155,43 @@ def run_cmd(cmd: List[str], timeout: int = 30) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
 
+def _ensure_imports_for_junit(code: str) -> str:
+    needed = [
+        "import org.junit.jupiter.api.*;",
+        "import org.junit.jupiter.params.*;",
+        "import org.junit.jupiter.params.provider.*;",
+        "import static org.junit.jupiter.api.Assertions.*;",
+        "import java.util.stream.*;",
+        "import java.util.*;",
+    ]
+    for imp in needed:
+        if imp not in code:
+            code = imp + "\n" + code
+    return code
+
 def normalize_test_class(code: str, idx: int) -> Tuple[str, str]:
     """테스트 클래스를 정규화하고 필요한 import 추가"""
     class_name = f"HumanEval_{idx}"
-    
-    # 기존 import 확인
-    has_junit_imports = "import org.junit" in code
-    
-    # 클래스 이름 변경
+
     if re.search(r"\bpublic\s+class\s+\w+\b", code):
         code = re.sub(r"\bpublic\s+class\s+\w+\b", f"public class {class_name}", code, count=1)
     elif re.search(r"\bclass\s+\w+\b", code):
         code = re.sub(r"\bclass\s+\w+\b", f"class {class_name}", code, count=1)
     else:
-        # 클래스 정의가 없는 경우만 전체 래핑
-        if not has_junit_imports:
-            header = (
-                "import org.junit.jupiter.api.*;\n"
-                "import static org.junit.jupiter.api.Assertions.*;\n\n"
-            )
-            code = f"{header}public class {class_name} {{\n{code}\n}}\n"
-        else:
-            code = f"public class {class_name} {{\n{code}\n}}\n"
+        header = (
+            "import org.junit.jupiter.api.*;\n"
+            "import org.junit.jupiter.params.*;\n"
+            "import org.junit.jupiter.params.provider.*;\n"
+            "import static org.junit.jupiter.api.Assertions.*;\n"
+            "import java.util.stream.*;\n"
+            "import java.util.*;\n\n"
+        )
+        code = f"{header}public class {class_name} {{\n{code}\n}}\n"
 
+    # ✅ 항상 임포트 보강
+    code = _ensure_imports_for_junit(code)
     return code, class_name
+
 
 
 def route_after_run(state: "State") -> str:
@@ -248,31 +265,28 @@ def main(args):
     set_seed(args.seed)
     llm = ChatOllama(model=args.model, base_url="http://localhost:11434")
 
-    gen_prompt = ChatPromptTemplate.from_template(
-        read_file(args.generate_test_prompt),
-    )
-    ana_prompt = ChatPromptTemplate.from_template(
-        read_file(args.analyze_test_prompt),
-    )
-    rev_prompt = ChatPromptTemplate.from_template(
-        read_file(args.revise_test_prompt),
-    )
 
     def generate_test_inputs(state: State) -> State:
         """LLM을 사용해 테스트 코드 생성"""
         try:
-            response = llm.invoke(
-                gen_prompt.format_messages(
-                    source_code=state["source_code"],
-                    transformed_code=state["transformed_code"],
-                    test_cases=state["source_test_cases"],      
-                )
+            print("[DEBUG] Generating initial test code...")
+
+            messages = render_prompt_jinja2(
+                args.generate_test_prompt,
+                source_code=state["source_code"],
+                transformed_code=state["transformed_code"],
+                test_cases=state["source_test_cases"],
             )
+
+            response = llm.invoke(messages)
             code_block = extract_codeblock(response.content, langs=("java", ""))
+            print(f"[DEBUG] Generated test code length: {len(code_block)}")
             return {"generated_test_code": code_block}
         except Exception as e:
             print(f"[ERROR] LLM generation failed: {e}")
             return {"generated_test_code": "", "is_failure": True, "error_type": "generation"}
+
+
 
     def write_and_compile(state: State) -> State:
         """테스트 코드와 CUT를 파일로 쓰고 컴파일"""
@@ -299,6 +313,7 @@ def main(args):
                 "error_type": "generation"
             }
         
+        print(f"[DEBUG] Writing test code (retry: {state.get('retry_count', 0)})")
         test_code_norm, class_name = normalize_test_class(test_code_raw, idx)
         test_pkg = extract_package(test_code_norm)
         test_dir = package_to_dir(classes_dir, test_pkg)
@@ -364,50 +379,72 @@ def main(args):
     def analyze_failure(state: State) -> State:
         """실패 분석 및 다음 액션 결정"""
         try:
-            response = llm.invoke(
-                ana_prompt.format_messages(
-                    test_cases=state["generated_test_code"],
-                    test_result=(
-                        f"=== Compile Output ===\n"
-                        f"{state.get('compile_stdout', '')}\n"
-                        f"{state.get('compile_stderr', '')}\n"
-                        f"=== Run Output ===\n"
-                        f"{state.get('run_stdout', '')}\n"
-                        f"{state.get('run_stderr', '')}\n"
-                    ),
-                )
+            print(f"[DEBUG] Analyzing failure (retry: {state.get('retry_count', 0)})")
+            current_test_code = state.get("generated_test_code", "")
+            print(f"[DEBUG] Current test code length: {len(current_test_code)}")
+
+            test_result = (
+                "=== Compile Output ===\n"
+                f"{state.get('compile_stdout', '')}\n"
+                f"{state.get('compile_stderr', '')}\n"
+                "=== Run Output ===\n"
+                f"{state.get('run_stdout', '')}\n"
+                f"{state.get('run_stderr', '')}\n"
             )
+
+            messages = render_prompt_jinja2(
+                args.analyze_test_prompt,
+                source_code=state["source_code"],
+                transformed_code=state["transformed_code"],
+                test_cases=current_test_code,
+                test_result=test_result,
+            )
+
+            response = llm.invoke(messages)
             analysis = response.content.strip()
 
-            # 다음 액션 결정
             next_step = "end"
-            for line in analysis.splitlines():
-                if "Action" in line and "Revise" in line:
-                    next_step = "revise_test_cases"
-                    break
+            if state.get("retry_count", 0) < 3 and "Action" in analysis and "Revise" in analysis:
+                next_step = "revise_test_cases"
+                print("[DEBUG] Next step: revise_test_cases")
 
             return {"failure_analysis": analysis, "failure_responding": next_step}
         except Exception as e:
             print(f"[ERROR] Analysis failed: {e}")
             return {"failure_analysis": str(e), "failure_responding": "end"}
 
+
+
+    
     def revise_test_cases(state: State) -> State:
         """실패 분석 기반 테스트 코드 수정"""
         try:
-            response = llm.invoke(
-                rev_prompt.format_messages(
-                    test_cases=state["generated_test_code"],
-                    failure_analysis=state["failure_analysis"],
-                )
+            print(f"[DEBUG] Revising test cases (retry: {state.get('retry_count', 0)})")
+
+            messages = render_prompt_jinja2(
+                args.revise_test_prompt,
+                test_cases=state.get("generated_test_code", ""),
+                failure_analysis=state.get("failure_analysis", ""),
             )
+
+            response = llm.invoke(messages)
             code_block = extract_codeblock(response.content, langs=("java", ""))
+            print(f"[DEBUG] Revised test code length: {len(code_block)}")
+
             return {
-                "generated_test_code": code_block, 
-                "retry_count": state.get("retry_count", 0) + 1
+                "generated_test_code": code_block,
+                "retry_count": state.get("retry_count", 0) + 1,
+                "is_failure": False,
+                "error_type": "",
             }
         except Exception as e:
             print(f"[ERROR] Revision failed: {e}")
-            return {"retry_count": state.get("retry_count", 0) + 1}
+            return {
+                "retry_count": state.get("retry_count", 0) + 1,
+                "failure_responding": "end"
+            }
+
+
 
     # LangGraph 워크플로우 구성
     workflow = StateGraph(State)
@@ -436,7 +473,7 @@ def main(args):
             "end": END,
         },
     )
-    workflow.add_edge("revise_test_cases", "write_and_compile")
+    workflow.add_edge("revise_test_cases", "write_and_compile")  # 수정 후 다시 컴파일로
 
     graph = workflow.compile()
 
@@ -489,6 +526,7 @@ def main(args):
         else:
             fail_count += 1
             print(f"[FAILURE] Index {idx} failed with error type: {result.get('error_type', 'unknown')}")
+            print(f"[FAILURE] Retry count: {result.get('retry_count', 0)}")
 
         # 간단한 출력
         if result.get("compile_stderr"):

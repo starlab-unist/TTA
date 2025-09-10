@@ -1,20 +1,27 @@
-The JUnit test failed due to issues in the test cases. Based on the failure analysis, revise the test cases to fix the issues. The test case should use assertEquals to compare outputs of original_function and transformed_function. The revised test code will be combined in the format:
+Analyze the following Java source code and its transformed version to generate a JUnit 5 test class that checks if both codes produce the same output for the same inputs.
 
-```
-{{source_code}}
-{{transformed_code}}
-{{test_cases}}
-```
-
+Requirements:
+- Use JUnit 5 with parameterized tests.
+- Do NOT add any `package` declaration.
+- Create exactly ONE public test class.
+- To avoid name collisions with existing compiled sources, wrap the original and transformed implementations as nested static classes named `OriginalImpl` and `TransformedImpl` inside the test class. If needed, copy only the target methods into these wrappers and make them `public static`.
+- The test class must define a `provideTestCases()` method that returns `Stream<Arguments>` created from the given Python unittest inputs (convert to appropriate Java types).
+- The test method MUST be annotated with `@ParameterizedTest` and `@MethodSource("provideTestCases")`, and must call both implementations with the SAME inputs and compare results using `assertEquals`. For floating-point comparisons, use delta if necessary.
 - Generate at least 10 test inputs that are simple values (e.g., integers, strings).
-- Ensure the test case is a valid Java JUnit test class.
+- Ensure the test case is a valid Java Unit jest.
+
+The generated test code will be combined with the source and transformed code in the format:
+{source_code}
+{transformed_code}
+{test_cases}
+
 
 Previous test cases:
 ```
-{test_cases}
+{{test_cases}}
 ```
 
 Failure analysis:
-{failure_analysis}
+{{failure_analysis}}
 
 Output the revised test case code with source code and transformed code.

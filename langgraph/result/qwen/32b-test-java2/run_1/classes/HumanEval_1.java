@@ -1,0 +1,97 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class HumanEval_1 {
+
+    // Source Code
+    static class SourceCode {
+        public static List<String> separateParenGroups(String parenString) {
+            List<String> result = new ArrayList<>();
+            StringBuilder currentString = new StringBuilder();
+            int currentDepth = 0;
+
+            for (char c : parenString.toCharArray()) {
+                if (c == '(') {
+                    currentDepth++;
+                    currentString.append(c);
+                } else if (c == ')') {
+                    currentDepth--;
+                    currentString.append(c);
+
+                    if (currentDepth == 0) {
+                        result.add(currentString.toString());
+                        currentString.setLength(0); // Clear the StringBuilder
+                    }
+                }
+            }
+
+            return result;
+        }
+    }
+
+    // Transformed Code
+    static class TransformedCode {
+        public static List<String> extractBalancedParentheses(String inputSequence) {
+            List<String> outputGroups = new ArrayList<>();
+            StringBuilder tempGroup = new StringBuilder();
+            int nestingLevel = 0;
+
+            int index = 0;
+            while (index < inputSequence.length()) {
+                char character = inputSequence.charAt(index);
+                if (character == '(') {
+                    nestingLevel++;
+                    tempGroup.append(character);
+                } else if (character == ')') {
+                    nestingLevel--;
+                    tempGroup.append(character);
+
+                    if (nestingLevel == 0) {
+                        outputGroups.add(tempGroup.toString());
+                        tempGroup.setLength(0); // Clear the StringBuilder
+                    }
+                }
+
+                index++;
+            }
+
+            return outputGroups;
+        }
+    }
+
+    // Test Cases
+    private static final String[][] testCases = {
+        {"()"},
+        {"(())"},
+        {"((()))"},
+        {"(()())"},
+        {"()(())"},
+        {"(()(()))"},
+        {""},
+        {"a(b)c(d(e)f)g"},
+        {"(abc)(def)"},
+        {"((a)(b))(c)"}
+    };
+
+    private static Stream<Arguments> provideTestCases() {
+        return Arrays.stream(testCases).map(Arguments::of);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void separateParenGroups_vs_extractBalancedParentheses(String inputText) {
+        assertEquals(
+            SourceCode.separateParenGroups(inputText),
+            TransformedCode.extractBalancedParentheses(inputText)
+        );
+    }
+}

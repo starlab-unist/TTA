@@ -1,0 +1,29 @@
+public class HumanEval_10 {
+    public static boolean checkPalindrome(String sequence) {
+        int left = 0;
+        int right = sequence.length() - 1;
+        while (left < right) {
+            if (sequence.charAt(left) != sequence.charAt(right)) {
+                return false;
+            }
+            left++;
+            right--;
+        }
+        return true;
+    }
+
+    public static String constructPalindrome(String inputStr) {
+        if (inputStr.isEmpty()) {
+            return "";
+        }
+
+        int suffixStartIndex = 0;
+
+        while (!checkPalindrome(inputStr.substring(suffixStartIndex))) {
+            suffixStartIndex++;
+        }
+
+        StringBuilder prefix = new StringBuilder(inputStr.substring(0, suffixStartIndex));
+        return inputStr + prefix.reverse().toString();
+    }
+}

@@ -29,83 +29,83 @@ import org.junit.jupiter.params.provider.Arguments;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class equiv_test_0 {
+public class equiv_test_0 {{
 
     // Source Code
-    static class SourceCode {
-        public static String mostCommonWord(String text) {
+    static class SourceCode {{
+        public static String mostCommonWord(String text) {{
             if (text == null) return null;
             String lower = text.toLowerCase();
             Matcher m = Pattern.compile("\\b\\w+\\b").matcher(lower);
 
             Map<String,Integer> counts = new HashMap<>();
-            while (m.find()) {
+            while (m.find()) {{
                 String w = m.group();
                 counts.put(w, counts.getOrDefault(w, 0) + 1);
-            }
+            }}
 
             String mostCommon = null;
             int maxCount = 0;
-            for (Map.Entry<String,Integer> e : counts.entrySet()) {
-                if (e.getValue() > maxCount) {
+            for (Map.Entry<String,Integer> e : counts.entrySet()) {{
+                if (e.getValue() > maxCount) {{
                     maxCount = e.getValue();
                     mostCommon = e.getKey();
-                }
-            }
+                }}
+            }}
             return mostCommon;
-        }
-    }
+        }}
+    }}
 
     // Transformed Code
-    static class TransformedCode {
-        public static String getMostFrequentWord(String sentence) {
+    static class TransformedCode {{
+        public static String getMostFrequentWord(String sentence) {{
             if (sentence == null) return null;
             String lower = sentence.toLowerCase();
             Matcher m = Pattern.compile("\\w+").matcher(lower);
 
             Map<String,Integer> freq = new HashMap<>();
-            while (m.find()) {
+            while (m.find()) {{
                 String t = m.group();
                 freq.put(t, freq.getOrDefault(t, 0) + 1);
-            }
+            }}
 
             String ans = null;
             int best = 0;
-            for (Map.Entry<String,Integer> e : freq.entrySet()) {
-                if (e.getValue() > best) {
+            for (Map.Entry<String,Integer> e : freq.entrySet()) {{
+                if (e.getValue() > best) {{
                     best = e.getValue();
                     ans = e.getKey();
-                }
-            }
+                }}
+            }}
             return ans;
-        }
-    }
+        }}
+    }}
 
     // Test Cases
-    private static final String[][] testCases = {
-        {"Hello hello HeLLo"},
-        {"Apple, banana. Apple! orange? apple; BANANA."},
-        {"one two one two"},
-        {"###@@!!python... python?? PYTHON--"},
-        {"123 456 123 789 123"},
-        {"abc abc 123 abc 123"},
-        {"        "},
-        {""},
-        {"OpenAI"},
-        {"a b c d e f g h i j"}
-    };
+    private static final String[][] testCases = {{
+        {{"Hello hello HeLLo"}},
+        {{"Apple, banana. Apple! orange? apple; BANANA."}},
+        {{"one two one two"}},
+        {{"###@@!!python... python?? PYTHON--"}},
+        {{"123 456 123 789 123"}},
+        {{"abc abc 123 abc 123"}},
+        {{"        "}},
+        {{""}},
+        {{"OpenAI"}},
+        {{"a b c d e f g h i j"}}
+    }};
 
-    private static Stream<Arguments> provideTestCases() {
+    private static Stream<Arguments> provideTestCases() {{
         return Arrays.stream(testCases).map(Arguments::of);
-    }
+    }}
 
-    void mostCommonWord_vs_getMostFrequentWord(String inputText) {
+    void mostCommonWord_vs_getMostFrequentWord(String inputText) {{
         assertEquals(
             SourceCode.mostCommonWord(inputText),
             TransformedCode.getMostFrequentWord(inputText)
         );
-    }
-}
+    }}
+}}
 
 
 Now, Your Turn!

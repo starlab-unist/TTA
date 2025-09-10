@@ -1,0 +1,24 @@
+public class HumanEval_114 {
+    public static int calculateMinimumSubarraySum(int[] numbers) {
+        int currentSum = 0;
+        int highestNegativeSum = 0;
+        
+        for (int value : numbers) {
+            currentSum += -value;
+            if (currentSum < 0) {
+                currentSum = 0;
+            }
+            highestNegativeSum = Math.max(currentSum, highestNegativeSum);
+        }
+        
+        if (highestNegativeSum == 0) {
+            highestNegativeSum = Integer.MIN_VALUE;
+            for (int val : numbers) {
+                highestNegativeSum = Math.max(-val, highestNegativeSum);
+            }
+        }
+        
+        int minimumSum = -highestNegativeSum;
+        return minimumSum;
+    }
+}

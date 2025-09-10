@@ -1,3 +1,4 @@
+
 import os
 import re
 import json
@@ -13,7 +14,11 @@ import torch
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_teddynote import logging
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =========================
 # 유틸
@@ -202,16 +207,16 @@ class State(TypedDict):
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("-sd", "--source_dir", type=str, default="./result/qwen/3b-py2java")
-    parser.add_argument("-td", "--transform_dir", type=str, default="./result/qwen/3b-eq2java")
+    parser.add_argument("-sd", "--source_dir", type=str, default="./result/qwen/32b-py2java")
+    parser.add_argument("-td", "--transform_dir", type=str, default="./result/qwen/32b-eq2java")
     parser.add_argument("-tcd", "--test_case_dir", type=str, default="./data/test-py")
-    parser.add_argument("-od", "--output_dir", type=str, default="./result/qwen/3b-test-java")
+    parser.add_argument("-od", "--output_dir", type=str, default="./result/qwen/32b-test-java2")
 
     parser.add_argument("--generate_test_prompt", type=str, default="./data/prompts/generate-java-test.txt")
     parser.add_argument("--analyze_test_prompt", type=str, default="./data/prompts/analyze-java-test.txt")
     parser.add_argument("--revise_test_prompt", type=str, default="./data/prompts/revise-java-test.txt")
 
-    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-fp16")
+    parser.add_argument("-m", "--model", type=str, default="qwen2.5-coder:32b-instruct-q8_0")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--junit_jar", type=str, default="./data/junit.jar")
 
@@ -245,15 +250,12 @@ def main(args):
 
     gen_prompt = ChatPromptTemplate.from_template(
         read_file(args.generate_test_prompt),
-        template_format="jinja2",   
     )
     ana_prompt = ChatPromptTemplate.from_template(
         read_file(args.analyze_test_prompt),
-        template_format="jinja2",
     )
     rev_prompt = ChatPromptTemplate.from_template(
         read_file(args.revise_test_prompt),
-        template_format="jinja2",
     )
 
     def generate_test_inputs(state: State) -> State:
@@ -261,8 +263,8 @@ def main(args):
         try:
             response = llm.invoke(
                 gen_prompt.format_messages(
-                    source_code=state["source_code"],            
-                    transformed_code=state["transformed_code"],  
+                    source_code=state["source_code"],
+                    transformed_code=state["transformed_code"],
                     test_cases=state["source_test_cases"],      
                 )
             )
@@ -286,7 +288,7 @@ def main(args):
         cut_dir = package_to_dir(classes_dir, cut_pkg)
         cut_path = os.path.join(cut_dir, f"{cut_public}.java")
         write_file(cut_path, cut_code)
-     
+    
         # 테스트 코드 작성
         test_code_raw = state["generated_test_code"]
         if not test_code_raw:
@@ -443,6 +445,9 @@ def main(args):
     fail_count = 0
     
     for idx, src_path, trans_path, test_hint_path in triplets:
+        
+        logging.langsmith("VTW Project(JAVA)")
+        
         print(f"\n{'='*50}")
         print(f"Processing index: {idx}")
         print(f"{'='*50}")

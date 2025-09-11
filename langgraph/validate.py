@@ -29,7 +29,7 @@ from langchain_core.exceptions import OutputParserException
 # =========================
 # Defaults
 # =========================
-MODEL_NAME = "qwen2.5-coder:32b-instruct-fp16"
+MODEL_NAME = "qwen2.5-coder:32b-instruct-q8_0"
 PY_TIMEOUT = 15
 JS_TIMEOUT = 20
 JAVA_TIMEOUT = 45

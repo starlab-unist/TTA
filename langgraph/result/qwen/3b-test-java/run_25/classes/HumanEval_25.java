@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,7 +16,7 @@ public class HumanEval_25 {
         public static List<Integer> factorize(int n) {
             List<Integer> fact = new ArrayList<>();
             int i = 2;
-            while (i <= Math.sqrt(n) + 1) {
+            while (i <= Math.sqrt(n)) {
                 if (n % i == 0) {
                     fact.add(i);
                     n /= i;
@@ -36,7 +37,7 @@ public class HumanEval_25 {
         public static List<Integer> decomposeNumber(int number) {
             List<Integer> factors = new ArrayList<>();
             int divisor = 2;
-            while (divisor <= Math.sqrt(number)) { // Note: Java does not have isqrt, using sqrt instead
+            while (divisor <= Math.sqrt(number)) {
                 if (number % divisor == 0) {
                     factors.add(divisor);
                     number /= divisor;

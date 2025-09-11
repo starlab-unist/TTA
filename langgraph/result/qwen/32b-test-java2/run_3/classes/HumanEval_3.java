@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_3 {
 
-    // Original Implementation
+    // Source Code
     static class OriginalImpl {
-        public boolean belowZero(List<Integer> operations) {
+        public static boolean belowZero(List<Integer> operations) {
             int balance = 0;
 
             for (int op : operations) {
@@ -29,9 +29,9 @@ public class HumanEval_3 {
         }
     }
 
-    // Transformed Implementation
+    // Transformed Code
     static class TransformedImpl {
-        public boolean checkNegativeBalance(List<Integer> transactions) {
+        public static boolean checkNegativeBalance(List<Integer> transactions) {
             int currentBalance = 0;
 
             int index = 0;
@@ -47,7 +47,7 @@ public class HumanEval_3 {
         }
     }
 
-    // Method to provide test cases
+    // Test Cases
     private static Stream<Arguments> provideTestCases() {
         return Stream.of(
             Arguments.of(List.of(), false),
@@ -63,13 +63,9 @@ public class HumanEval_3 {
         );
     }
 
-    // Parameterized test method
     @ParameterizedTest
     @MethodSource("provideTestCases")
-    public void testBelowZero(List<Integer> input, boolean expected) {
-        OriginalImpl original = new OriginalImpl();
-        TransformedImpl transformed = new TransformedImpl();
-
-        assertEquals(original.belowZero(input), transformed.checkNegativeBalance(input));
+    public void testBelowZero(List<Integer> operations, boolean expected) {
+        assertEquals(OriginalImpl.belowZero(operations), TransformedImpl.checkNegativeBalance(operations));
     }
 }

@@ -1,4 +1,48 @@
+import java.util.*;
+import java.util.stream.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class HumanEval_140 {
+
+    // Source Code
+    public static String fixSpaces(String text) {
+        StringBuilder new_text = new StringBuilder();
+        int i = 0;
+        int start = 0;
+        int end = 0;
+
+        while (i < text.length()) {
+            if (text.charAt(i) == ' ') {
+                end++;
+            } else {
+                if (end - start > 2) {
+                    new_text.append("-");
+                } else if (end - start > 0) {
+                    new_text.append("_".repeat(end - start));
+                } else {
+                    new_text.append(text.charAt(i));
+                }
+                start = end;
+                end = i + 1;
+            }
+            i++;
+        }
+
+        if (end - start > 2) {
+            new_text.append("-");
+        } else if (end - start > 0) {
+            new_text.append("_");
+        }
+
+        return new_text.toString();
+    }
+
+    // Transformed Code
     public static String adjustWhitespace(String inputString) {
         StringBuilder result = new StringBuilder();
         int index = 0;
@@ -29,9 +73,67 @@ public class HumanEval_140 {
         return result.toString();
     }
 
-    // method name: fixSpaces -> adjustWhitespace
-    // parameter name: text -> inputString
-    // variable name: new_text -> result, i -> index, start -> begin, end -> finish
-    // replaced inline conditions with a separate variable for space count (spaceCount)
-    // maintained the same logic and output structure
+    // Test Cases
+    private static final String[] testCases = {
+        "Hello   world",
+        "This is  a test",
+        "Multiple     spaces",
+        "NoSpacesHere",
+        " ",
+        "  ",
+        "   ",
+        "    ",
+        "a b c d e f g h i j",
+        "OpenAI     Inc"
+    };
+
+    @Test
+    public void test_0() {
+        assertEquals(fixSpaces(testCases[0]), adjustWhitespace(testCases[0]));
+    }
+
+    @Test
+    public void test_1() {
+        assertEquals(fixSpaces(testCases[1]), adjustWhitespace(testCases[1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(fixSpaces(testCases[2]), adjustWhitespace(testCases[2]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(fixSpaces(testCases[3]), adjustWhitespace(testCases[3]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(fixSpaces(testCases[4]), adjustWhitespace(testCases[4]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(fixSpaces(testCases[5]), adjustWhitespace(testCases[5]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(fixSpaces(testCases[6]), adjustWhitespace(testCases[6]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(fixSpaces(testCases[7]), adjustWhitespace(testCases[7]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(fixSpaces(testCases[8]), adjustWhitespace(testCases[8]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(fixSpaces(testCases[9]), adjustWhitespace(testCases[9]));
+    }
 }

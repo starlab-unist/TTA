@@ -4,18 +4,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+// Test Class
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class HumanEval_6 {
 
-    // Source Code
+    // Original Implementation
     static class OriginalImpl {
         public static List<Integer> parseNestedParens(String parenString) {
             List<Integer> result = new ArrayList<>();
@@ -45,12 +49,12 @@ public class HumanEval_6 {
         }
     }
 
-    // Transformed Code
+    // Transformed Implementation
     static class TransformedImpl {
         public static List<Integer> analyzeParenthesesDepth(String parenSequence) {
-            return Stream.of(parenSequence.split("\\s+"))
+            return Arrays.stream(parenSequence.split("\\s+"))
                     .map(TransformedImpl::calculateMaxNestingLevel)
-                    .collect(Collectors.toList());
+                    .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         }
 
         private static int calculateMaxNestingLevel(String substring) {
@@ -69,8 +73,8 @@ public class HumanEval_6 {
         }
     }
 
-    // Test Cases
-    private static Stream<Arguments> provideTestCases() {
+    // Provide test cases as a stream of arguments
+    private Stream<Arguments> provideTestCases() {
         return Stream.of(
             Arguments.of("(()) ()"),
             Arguments.of("((())) (()) ()"),
@@ -85,9 +89,10 @@ public class HumanEval_6 {
         );
     }
 
+    // Parameterized test method
     @ParameterizedTest
     @MethodSource("provideTestCases")
-    public void test(String testCase) {
-        assertEquals(OriginalImpl.parseNestedParens(testCase), TransformedImpl.analyzeParenthesesDepth(testCase));
+    public void testParseNestedParens(String input) {
+        assertEquals(OriginalImpl.parseNestedParens(input), TransformedImpl.analyzeParenthesesDepth(input));
     }
 }

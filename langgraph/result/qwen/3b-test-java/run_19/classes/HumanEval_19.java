@@ -4,14 +4,18 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_19 {
 
-    // Nested class for the original implementation
-    public static class OriginalImpl {
+    // Source Code
+    static class OriginalImpl {
         public static String sortNumbers(String numbers) {
             Map<String, Integer> valueMap = new HashMap<>();
             valueMap.put("zero", 0);
@@ -32,8 +36,8 @@ public class HumanEval_19 {
         }
     }
 
-    // Nested class for the transformed implementation
-    public static class TransformedImpl {
+    // Transformed Code
+    static class TransformedImpl {
         public static String arrangeNumerals(String numberString) {
             Map<String, Integer> numeralToDigit = new HashMap<>();
             numeralToDigit.put("zero", 0);
@@ -61,26 +65,25 @@ public class HumanEval_19 {
         }
     }
 
-    // Method to provide test cases
+    // Test Cases
     private static Stream<Arguments> provideTestCases() {
         return Stream.of(
-            Arguments.of("three one four one five nine"),
-            Arguments.of("nine eight seven six five four three two one zero"),
-            Arguments.of("zero zero zero"),
-            Arguments.of("one two three four five six seven eight nine"),
-            Arguments.of("four four four four four"),
-            Arguments.of("five six seven eight nine zero one two three"),
-            Arguments.of("two four six eight"),
-            Arguments.of("one three five seven nine"),
-            Arguments.of(""),
-            Arguments.of("nine")
+            Arguments.arguments("three one four one five nine"),
+            Arguments.arguments("nine eight seven six five four three two one zero"),
+            Arguments.arguments("zero zero zero"),
+            Arguments.arguments("one two three four five six seven eight nine"),
+            Arguments.arguments("four four four four four"),
+            Arguments.arguments("five six seven eight nine zero one two three"),
+            Arguments.arguments("two four six eight"),
+            Arguments.arguments("one three five seven nine"),
+            Arguments.arguments(""),
+            Arguments.arguments("nine")
         );
     }
 
-    // Parameterized test method
     @ParameterizedTest
     @MethodSource("provideTestCases")
-    public void test(String input) {
+    public void testSortAndArrangeNumerals(String input) {
         assertEquals(OriginalImpl.sortNumbers(input), TransformedImpl.arrangeNumerals(input));
     }
 }

@@ -10,11 +10,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+// Source Code
 public class HumanEval_27 {
 
-    // Original Implementation (assuming we need to implement flipCase method)
+    // Nested static classes for original and transformed implementations
     public static class OriginalImpl {
         public static String flipCase(String string) {
             StringBuilder result = new StringBuilder();
@@ -31,7 +33,6 @@ public class HumanEval_27 {
         }
     }
 
-    // Transformed Implementation
     public static class TransformedImpl {
         public static String invertCharacterCase(String inputText) {
             StringBuilder result = new StringBuilder();
@@ -48,7 +49,7 @@ public class HumanEval_27 {
         }
     }
 
-    // Test Inputs
+    // Provide test cases
     private static Stream<Arguments> provideTestCases() {
         return Stream.of(
             Arguments.of("Hello World"),
@@ -64,11 +65,10 @@ public class HumanEval_27 {
         );
     }
 
+    // Parameterized test
     @ParameterizedTest
     @MethodSource("provideTestCases")
     public void testFlipCaseAndInvertCharacterCase(String input) {
-        String originalResult = OriginalImpl.flipCase(input);
-        String transformedResult = TransformedImpl.invertCharacterCase(input);
-        assertEquals(originalResult, transformedResult, "Mismatch for input: " + input);
+        assertEquals(OriginalImpl.flipCase(input), TransformedImpl.invertCharacterCase(input));
     }
 }

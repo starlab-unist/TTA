@@ -5,6 +5,7 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,16 +56,16 @@ public class HumanEval_5 {
 
     // Test Cases
     private static final Object[][] testCases = {
-        {List.of(1, 2, 3), 0},
-        {List.of(5, 6, 7, 8), -1},
-        {List.of(10), 5},
-        {List.of(), 3},
-        {List.of(1, 1, 1, 1), 2},
-        {List.of(9, 8, 7), 4},
-        {List.of(2, 4, 6, 8, 10), 1},
-        {List.of(3, 3, 3), 3},
-        {List.of(5), 5},
-        {List.of(7, 8), 9}
+        {Arrays.asList(1, 2, 3), 0},
+        {Arrays.asList(5, 6, 7, 8), -1},
+        {Arrays.asList(10), 5},
+        {new ArrayList<>(), 3},
+        {Arrays.asList(1, 1, 1, 1), 2},
+        {Arrays.asList(9, 8, 7), 4},
+        {Arrays.asList(2, 4, 6, 8, 10), 1},
+        {Arrays.asList(3, 3, 3), 3},
+        {Arrays.asList(5), 5},
+        {Arrays.asList(7, 8), 9}
     };
 
     @Test

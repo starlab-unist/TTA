@@ -11,42 +11,38 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class HumanEval_9 {
 
     // Source Code
-    static class HumanEval_9_Source {
-        public static List<Integer> rollingMax(List<Integer> numbers) {
-            Integer runningMax = null;
-            List<Integer> result = new ArrayList<>();
+    public static List<Integer> rollingMax(List<Integer> numbers) {
+        Integer runningMax = null;
+        List<Integer> result = new ArrayList<>();
 
-            for (Integer n : numbers) {
-                if (runningMax == null) {
-                    runningMax = n;
-                } else {
-                    runningMax = Math.max(runningMax, n);
-                }
-
-                result.add(runningMax);
+        for (Integer n : numbers) {
+            if (runningMax == null) {
+                runningMax = n;
+            } else {
+                runningMax = Math.max(runningMax, n);
             }
 
-            return result;
+            result.add(runningMax);
         }
+
+        return result;
     }
 
     // Transformed Code
-    static class HumanEval_9_Transformed {
-        public static List<Integer> computeRollingMaximum(List<Integer> values) {
-            Integer currentMax = null;
-            List<Integer> maxHistory = new java.util.ArrayList<>();
+    public static List<Integer> computeRollingMaximum(List<Integer> values) {
+        Integer currentMax = null;
+        List<Integer> maxHistory = new java.util.ArrayList<>();
 
-            int index = 0;
-            while (index < values.size()) {
-                if (currentMax == null || values.get(index) > currentMax) {
-                    currentMax = values.get(index);
-                }
-                maxHistory.add(currentMax);
-                index++;
+        int index = 0;
+        while (index < values.size()) {
+            if (currentMax == null || values.get(index) > currentMax) {
+                currentMax = values.get(index);
             }
-
-            return maxHistory;
+            maxHistory.add(currentMax);
+            index++;
         }
+
+        return maxHistory;
     }
 
     // Test Cases
@@ -65,61 +61,61 @@ public class HumanEval_9 {
 
     @Test
     public void test_0() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[0][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[0][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[0][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[0][0]));
     }
 
     @Test
     public void test_1() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[1][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[1][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[1][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[1][0]));
     }
 
     @Test
     public void test_2() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[2][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[2][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[2][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[2][0]));
     }
 
     @Test
     public void test_3() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[3][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[3][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[3][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[3][0]));
     }
 
     @Test
     public void test_4() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[4][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[4][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[4][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[4][0]));
     }
 
     @Test
     public void test_5() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[5][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[5][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[5][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[5][0]));
     }
 
     @Test
     public void test_6() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[6][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[6][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[6][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[6][0]));
     }
 
     @Test
     public void test_7() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[7][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[7][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[7][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[7][0]));
     }
 
     @Test
     public void test_8() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[8][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[8][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[8][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[8][0]));
     }
 
     @Test
     public void test_9() {
-        assertEquals(HumanEval_9_Source.rollingMax((List<Integer>) testCases[9][0]), 
-                     HumanEval_9_Transformed.computeRollingMaximum((List<Integer>) testCases[9][0]));
+        assertEquals(HumanEval_9.rollingMax((List<Integer>) testCases[9][0]), 
+                     HumanEval_9.computeRollingMaximum((List<Integer>) testCases[9][0]));
     }
 }

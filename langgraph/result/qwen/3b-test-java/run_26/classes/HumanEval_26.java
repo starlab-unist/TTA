@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
-
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -70,51 +69,61 @@ public class HumanEval_26 {
 
     @Test
     public void test_0() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[0][0]), filterUniqueElements((List<Integer>) testCases[0][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[0][0]), 
+                     filterUniqueElements((List<Integer>) testCases[0][0]));
     }
 
     @Test
     public void test_1() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[1][0]), filterUniqueElements((List<Integer>) testCases[1][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[1][0]), 
+                     filterUniqueElements((List<Integer>) testCases[1][0]));
     }
 
     @Test
     public void test_2() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[2][0]), filterUniqueElements((List<Integer>) testCases[2][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[2][0]), 
+                     filterUniqueElements((List<Integer>) testCases[2][0]));
     }
 
     @Test
     public void test_3() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[3][0]), filterUniqueElements((List<Integer>) testCases[3][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[3][0]), 
+                     filterUniqueElements((List<Integer>) testCases[3][0]));
     }
 
     @Test
     public void test_4() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[4][0]), filterUniqueElements((List<Integer>) testCases[4][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[4][0]), 
+                     filterUniqueElements((List<Integer>) testCases[4][0]));
     }
 
     @Test
     public void test_5() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[5][0]), filterUniqueElements((List<Integer>) testCases[5][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[5][0]), 
+                     filterUniqueElements((List<Integer>) testCases[5][0]));
     }
 
     @Test
     public void test_6() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[6][0]), filterUniqueElements((List<Integer>) testCases[6][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[6][0]), 
+                     filterUniqueElements((List<Integer>) testCases[6][0]));
     }
 
     @Test
     public void test_7() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[7][0]), filterUniqueElements((List<Integer>) testCases[7][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[7][0]), 
+                     filterUniqueElements((List<Integer>) testCases[7][0]));
     }
 
     @Test
     public void test_8() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[8][0]), filterUniqueElements((List<Integer>) testCases[8][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[8][0]), 
+                     filterUniqueElements((List<Integer>) testCases[8][0]));
     }
 
     @Test
     public void test_9() {
-        assertEquals(removeDuplicates((List<Integer>) testCases[9][0]), filterUniqueElements((List<Integer>) testCases[9][0]));
+        assertEquals(removeDuplicates((List<Integer>) testCases[9][0]), 
+                     filterUniqueElements((List<Integer>) testCases[9][0]));
     }
 }

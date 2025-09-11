@@ -1,0 +1,129 @@
+import java.util.*;
+import java.util.stream.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.api.*;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class HumanEval_106 {
+
+    // Source Code
+    static class HumanEval_106_Source {
+        public static List<Integer> f(int n) {
+            List<Integer> ret = new ArrayList<>();
+            for (int i = 1; i <= n; i++) {
+                if (i % 2 == 0) {
+                    int x = 1;
+                    for (int j = 1; j <= i; j++) {
+                        x *= j;
+                    }
+                    ret.add(x);
+                } else {
+                    int x = 0;
+                    for (int j = 1; j <= i; j++) {
+                        x += j;
+                    }
+                    ret.add(x);
+                }
+            }
+            return ret;
+        }
+    }
+
+    // Transformed Code
+    static class HumanEval_106_Transformed {
+        public static List<Integer> generateAlternatingSequence(int limit) {
+            List<Integer> result = new ArrayList<>();
+            int index = 1;
+            while (index <= limit) {
+                if (index % 2 == 0) {
+                    int factorial = 1;
+                    int innerIndex = 1;
+                    while (innerIndex <= index) {
+                        factorial *= innerIndex;
+                        innerIndex++;
+                    }
+                    result.add(factorial);
+                } else {
+                    int summation = 0;
+                    int innerIndex = 1;
+                    while (innerIndex <= index) {
+                        summation += innerIndex;
+                        innerIndex++;
+                    }
+                    result.add(summation);
+                }
+                index++;
+            }
+            return result;
+        }
+    }
+
+    // Test Cases
+    private static final int[] testCases = {
+        0,   // Edge case: no elements
+        1,   // Only one element, odd
+        2,   // Two elements, odd then even
+        3,   // Three elements, odd, even, odd
+        4,   // Four elements, odd, even, odd, even
+        5,   // Five elements, odd, even, odd, even, odd
+        10,  // Ten elements
+        20,  // Twenty elements
+        30,  // Thirty elements
+        50   // Fifty elements
+    };
+
+    @Test
+    public void test_0() {
+        assertEquals(HumanEval_106_Source.f(testCases[0]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[0]));
+    }
+
+    @Test
+    public void test_1() {
+        assertEquals(HumanEval_106_Source.f(testCases[1]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(HumanEval_106_Source.f(testCases[2]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[2]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(HumanEval_106_Source.f(testCases[3]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[3]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(HumanEval_106_Source.f(testCases[4]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[4]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(HumanEval_106_Source.f(testCases[5]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[5]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(HumanEval_106_Source.f(testCases[6]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[6]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(HumanEval_106_Source.f(testCases[7]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[7]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(HumanEval_106_Source.f(testCases[8]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[8]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(HumanEval_106_Source.f(testCases[9]), HumanEval_106_Transformed.generateAlternatingSequence(testCases[9]));
+    }
+}

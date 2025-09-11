@@ -5,28 +5,20 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_11 {
 
-    // Source Code (Revised for compatibility)
-    static class OriginalImpl {
+    // Source Code
+    static class HumanEval_11_Source {
         public static String stringXor(String a, String b) {
-            StringBuilder result = new StringBuilder();
-            for (int i = 0; i < a.length(); i++) {
-                char c1 = a.charAt(i);
-                char c2 = b.charAt(i);
-                result.append(xor(c1, c2));
-            }
-            return result.toString();
+            return a.chars()
+                    .zip(b.chars(), (x, y) -> xor(x, y))
+                    .mapToObj(c -> String.valueOf(c))
+                    .collect(Collectors.joining());
         }
 
-        private static char xor(char i, char j) {
+        private static char xor(int i, int j) {
             if (i == j) {
                 return '0';
             } else {
@@ -36,7 +28,7 @@ public class HumanEval_11 {
     }
 
     // Transformed Code
-    static class TransformedImpl {
+    static class HumanEval_11_Transformed {
         public static String binaryStringDifference(String str1, String str2) {
             StringBuilder result = new StringBuilder();
             int index = 0;
@@ -57,24 +49,76 @@ public class HumanEval_11 {
     }
 
     // Test Cases
-    private static Stream<Arguments> provideTestCases() {
-        return Stream.of(
-            Arguments.of("1101", "1001"),
-            Arguments.of("1111", "0000"),
-            Arguments.of("0000", "0000"),
-            Arguments.of("101010", "010101"),
-            Arguments.of("111000", "111000"),
-            Arguments.of("110011", "001100"),
-            Arguments.of("1", "1"),
-            Arguments.of("0", "0"),
-            Arguments.of("10", "01"),
-            Arguments.of("11111111", "00000000")
-        );
+    private static final String[][] testCases = {
+        {"1101", "1001"},
+        {"1111", "0000"},
+        {"0000", "0000"},
+        {"101010", "010101"},
+        {"111000", "111000"},
+        {"110011", "001100"},
+        {"1", "1"},
+        {"0", "0"},
+        {"10", "01"},
+        {"11111111", "00000000"}
+    };
+
+    @Test
+    public void test_0() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[0][0], testCases[0][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[0][0], testCases[0][1]));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideTestCases")
-    public void testStringXorAndBinaryStringDifference(String a, String b) {
-        assertEquals(OriginalImpl.stringXor(a, b), TransformedImpl.binaryStringDifference(a, b));
+    @Test
+    public void test_1() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[1][0], testCases[1][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[1][0], testCases[1][1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[2][0], testCases[2][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[2][0], testCases[2][1]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[3][0], testCases[3][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[3][0], testCases[3][1]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[4][0], testCases[4][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[4][0], testCases[4][1]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[5][0], testCases[5][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[5][0], testCases[5][1]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[6][0], testCases[6][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[6][0], testCases[6][1]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[7][0], testCases[7][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[7][0], testCases[7][1]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[8][0], testCases[8][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[8][0], testCases[8][1]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(HumanEval_11_Source.stringXor(testCases[9][0], testCases[9][1]), 
+                     HumanEval_11_Transformed.binaryStringDifference(testCases[9][0], testCases[9][1]));
     }
 }

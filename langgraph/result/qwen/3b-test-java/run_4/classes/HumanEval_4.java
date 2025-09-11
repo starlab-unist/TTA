@@ -63,61 +63,61 @@ public class HumanEval_4 {
 
     @Test
     public void test_0() {
-        assertEquals(((Double) testCases[0][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[0][0]), 1e-9);
-        assertEquals(((Double) testCases[0][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[0][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[0][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[0][0]), 1e-9);
     }
 
     @Test
     public void test_1() {
-        assertEquals(((Double) testCases[1][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[1][0]), 1e-9);
-        assertEquals(((Double) testCases[1][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[1][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[1][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[1][0]), 1e-9);
     }
 
     @Test
     public void test_2() {
-        assertEquals(((Double) testCases[2][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[2][0]), 1e-9);
-        assertEquals(((Double) testCases[2][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[2][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[2][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[2][0]), 1e-9);
     }
 
     @Test
     public void test_3() {
-        assertEquals(((Double) testCases[3][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[3][0]), 1e-9);
-        assertEquals(((Double) testCases[3][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[3][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[3][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[3][0]), 1e-9);
     }
 
     @Test
     public void test_4() {
-        assertEquals(((Double) testCases[4][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[4][0]), 1e-9);
-        assertEquals(((Double) testCases[4][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[4][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[4][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[4][0]), 1e-9);
     }
 
     @Test
     public void test_5() {
-        assertEquals(((Double) testCases[5][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[5][0]), 1e-9);
-        assertEquals(((Double) testCases[5][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[5][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[5][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[5][0]), 1e-9);
     }
 
     @Test
     public void test_6() {
-        assertEquals(((Double) testCases[6][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[6][0]), 1e-9);
-        assertEquals(((Double) testCases[6][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[6][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[6][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[6][0]), 1e-9);
     }
 
     @Test
     public void test_7() {
-        assertEquals(((Double) testCases[7][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[7][0]), 1e-9);
-        assertEquals(((Double) testCases[7][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[7][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[7][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[7][0]), 1e-9);
     }
 
     @Test
     public void test_8() {
-        assertEquals(((Double) testCases[8][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[8][0]), 1e-9);
-        assertEquals(((Double) testCases[8][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[8][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[8][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[8][0]), 1e-9);
     }
 
     @Test
     public void test_9() {
-        assertEquals(((Double) testCases[9][1]).doubleValue(), HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[9][0]), 1e-9);
-        assertEquals(((Double) testCases[9][1]).doubleValue(), HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[9][0]), 1e-9);
+        assertEquals(HumanEval_4_Source.meanAbsoluteDeviation((List<Double>) testCases[9][0]), 
+                     HumanEval_4_Transformed.calculateMeanAbsoluteDev((List<Double>) testCases[9][0]), 1e-9);
     }
 }

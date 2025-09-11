@@ -6,6 +6,7 @@ import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.List;
 import java.util.ArrayList;
+
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -39,7 +40,7 @@ public class HumanEval_22 {
 
     // Test Cases
     private static final Object[][] testCases = {
-        {List.of(1, 2, 3.5, 'a', 4)},
+        {List.of(1, 2, 3.5, "a", 4)},
         {List.of("hello", 100, 200, "world")},
         {List.of(1, 2, 3, 4, 5)},
         {List.of("x", "y", "z")},

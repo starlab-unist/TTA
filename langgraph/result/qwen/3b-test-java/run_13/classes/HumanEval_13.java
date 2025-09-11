@@ -35,16 +35,16 @@ public class HumanEval_13 {
 
     // Test Cases
     private static final int[][] testCases = {
-        {48, 18},  // GCD is 6
-        {56, 98},  // GCD is 14
+        {48, 18},   // GCD is 6
+        {56, 98},   // GCD is 14
         {101, 103}, // GCD is 1 (prime numbers)
         {270, 192}, // GCD is 6
-        {0, 5},    // GCD is 5
-        {5, 0},    // GCD is 5
-        {0, 0},    // GCD is 0
-        {20, 30},  // GCD is 10
-        {7, 3},    // GCD is 1
-        {100, 10}  // GCD is 10
+        {0, 5},     // GCD is 5
+        {5, 0},     // GCD is 5
+        {0, 0},     // GCD is 0
+        {20, 30},   // GCD is 10
+        {7, 3},     // GCD is 1
+        {100, 10}   // GCD is 10
     };
 
     @Test

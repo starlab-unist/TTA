@@ -5,24 +5,31 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_16 {
 
     // Source Code
-    public static int countDistinctCharacters(String string) {
-        return new HashSet<>(Arrays.asList(string.toLowerCase().split("")))
-                .size();
+    static class HumanEval_16_Source {
+        public static int countDistinctCharacters(String string) {
+            return new HashSet<>(Arrays.asList(string.toLowerCase().split("")))
+                    .size();
+        }
     }
 
     // Transformed Code
-    public static int determineUniqueCharCount(String inputText) {
-        Set<Character> uniqueChars = new HashSet<>();
-        for (char c : inputText.toLowerCase().toCharArray()) {
-            uniqueChars.add(c);
+    static class HumanEval_16_Transformed {
+        public static int determineUniqueCharCount(String inputText) {
+            Set<Character> uniqueChars = new HashSet<>();
+            for (char c : inputText.toLowerCase().toCharArray()) {
+                uniqueChars.add(c);
+            }
+            return uniqueChars.size();
         }
-        return uniqueChars.size();
     }
 
     // Test Cases
@@ -36,56 +43,66 @@ public class HumanEval_16 {
         "aabbccddeeffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz",
         "The quick brown fox jumps over the lazy dog",
         "",
-        " "
+        " ",
     };
 
     @Test
     public void test_0() {
-        assertEquals(countDistinctCharacters(testCases[0]), determineUniqueCharCount(testCases[0]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[0]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[0]));
     }
 
     @Test
     public void test_1() {
-        assertEquals(countDistinctCharacters(testCases[1]), determineUniqueCharCount(testCases[1]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[1]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[1]));
     }
 
     @Test
     public void test_2() {
-        assertEquals(countDistinctCharacters(testCases[2]), determineUniqueCharCount(testCases[2]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[2]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[2]));
     }
 
     @Test
     public void test_3() {
-        assertEquals(countDistinctCharacters(testCases[3]), determineUniqueCharCount(testCases[3]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[3]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[3]));
     }
 
     @Test
     public void test_4() {
-        assertEquals(countDistinctCharacters(testCases[4]), determineUniqueCharCount(testCases[4]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[4]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[4]));
     }
 
     @Test
     public void test_5() {
-        assertEquals(countDistinctCharacters(testCases[5]), determineUniqueCharCount(testCases[5]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[5]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[5]));
     }
 
     @Test
     public void test_6() {
-        assertEquals(countDistinctCharacters(testCases[6]), determineUniqueCharCount(testCases[6]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[6]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[6]));
     }
 
     @Test
     public void test_7() {
-        assertEquals(countDistinctCharacters(testCases[7]), determineUniqueCharCount(testCases[7]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[7]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[7]));
     }
 
     @Test
     public void test_8() {
-        assertEquals(countDistinctCharacters(testCases[8]), determineUniqueCharCount(testCases[8]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[8]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[8]));
     }
 
     @Test
     public void test_9() {
-        assertEquals(countDistinctCharacters(testCases[9]), determineUniqueCharCount(testCases[9]));
+        assertEquals(HumanEval_16_Source.countDistinctCharacters(testCases[9]), 
+                     HumanEval_16_Transformed.determineUniqueCharCount(testCases[9]));
     }
 }

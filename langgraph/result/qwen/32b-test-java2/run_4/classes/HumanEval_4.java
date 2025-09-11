@@ -40,51 +40,61 @@ public class HumanEval_4 {
 
     @Test
     public void test_0() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[0][0]), calculateMeanAbsDev((List<Double>) testCases[0][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[0][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[0][0]), 1e-9);
     }
 
     @Test
     public void test_1() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[1][0]), calculateMeanAbsDev((List<Double>) testCases[1][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[1][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[1][0]), 1e-9);
     }
 
     @Test
     public void test_2() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[2][0]), calculateMeanAbsDev((List<Double>) testCases[2][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[2][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[2][0]), 1e-9);
     }
 
     @Test
     public void test_3() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[3][0]), calculateMeanAbsDev((List<Double>) testCases[3][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[3][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[3][0]), 1e-9);
     }
 
     @Test
     public void test_4() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[4][0]), calculateMeanAbsDev((List<Double>) testCases[4][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[4][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[4][0]), 1e-9);
     }
 
     @Test
     public void test_5() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[5][0]), calculateMeanAbsDev((List<Double>) testCases[5][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[5][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[5][0]), 1e-9);
     }
 
     @Test
     public void test_6() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[6][0]), calculateMeanAbsDev((List<Double>) testCases[6][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[6][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[6][0]), 1e-9);
     }
 
     @Test
     public void test_7() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[7][0]), calculateMeanAbsDev((List<Double>) testCases[7][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[7][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[7][0]), 1e-9);
     }
 
     @Test
     public void test_8() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[8][0]), calculateMeanAbsDev((List<Double>) testCases[8][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[8][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[8][0]), 1e-9);
     }
 
     @Test
     public void test_9() {
-        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[9][0]), calculateMeanAbsDev((List<Double>) testCases[9][0]), 0.0000000001);
+        assertEquals(meanAbsoluteDeviation((List<Double>) testCases[9][0]), 
+                     calculateMeanAbsDev((List<Double>) testCases[9][0]), 1e-9);
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.List;
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,7 +16,7 @@ public class HumanEval_7 {
         public static List<String> filterBySubstring(List<String> strings, String substring) {
             return strings.stream()
                     .filter(x -> x.contains(substring))
-                    .collect(Collectors.toList());
+                    .collect(java.util.stream.Collectors.toList());
         }
     }
 

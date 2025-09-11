@@ -1,0 +1,126 @@
+import java.util.*;
+import java.util.stream.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.api.*;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class HumanEval_147 {
+
+    // Source Code
+    public static int getMaxTriples(int n) {
+        List<Integer> A = new ArrayList<>();
+        for (int i = 1; i <= n; i++) {
+            A.add(i * i - i + 1);
+        }
+
+        List<int[]> ans = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                for (int k = j + 1; k < n; k++) {
+                    if ((A.get(i) + A.get(j) + A.get(k)) % 3 == 0) {
+                        ans.add(new int[]{A.get(i), A.get(j), A.get(k)});
+                    }
+                }
+            }
+        }
+
+        return ans.size();
+    }
+
+    // Transformed Code
+    public static int countDivisibleTriples(int limit) {
+        int[] sequence = new int[limit];
+        for (int i = 0; i < limit; i++) {
+            sequence[i] = i * i - i + 1;
+        }
+        
+        int resultCount = 0;
+        
+        int indexI = 0;
+        while (indexI < limit) {
+            int indexJ = indexI + 1;
+            while (indexJ < limit) {
+                int indexK = indexJ + 1;
+                while (indexK < limit) {
+                    if ((sequence[indexI] + sequence[indexJ] + sequence[indexK]) % 3 == 0) {
+                        resultCount++;
+                    }
+                    indexK++;
+                }
+                indexJ++;
+            }
+            indexI++;
+        }
+        
+        return resultCount;
+    }
+
+    // Test Cases
+    private static final int[] testCases = {
+        1,  // No triples possible
+        2,  // No triples possible
+        3,  // One triple (1, 3, 7)
+        4,  // Two triples (1, 7, 19), (3, 7, 13)
+        5,  // Four triples (1, 7, 31), (1, 13, 21), (3, 7, 31), (3, 13, 19)
+        6,  // Six triples
+        7,  // Ten triples
+        8,  // Fourteen triples
+        9,  // Twenty-one triples
+        10  // Thirty-one triples
+    };
+
+    @Test
+    public void test_0() {
+        assertEquals(getMaxTriples(testCases[0]), countDivisibleTriples(testCases[0]));
+    }
+
+    @Test
+    public void test_1() {
+        assertEquals(getMaxTriples(testCases[1]), countDivisibleTriples(testCases[1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(getMaxTriples(testCases[2]), countDivisibleTriples(testCases[2]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(getMaxTriples(testCases[3]), countDivisibleTriples(testCases[3]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(getMaxTriples(testCases[4]), countDivisibleTriples(testCases[4]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(getMaxTriples(testCases[5]), countDivisibleTriples(testCases[5]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(getMaxTriples(testCases[6]), countDivisibleTriples(testCases[6]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(getMaxTriples(testCases[7]), countDivisibleTriples(testCases[7]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(getMaxTriples(testCases[8]), countDivisibleTriples(testCases[8]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(getMaxTriples(testCases[9]), countDivisibleTriples(testCases[9]));
+    }
+}

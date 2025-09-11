@@ -5,58 +5,55 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.List;
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_21 {
 
     // Source Code
-    static class HumanEval_21_Source {
-        public static List<Double> rescaleToUnit(List<Double> numbers) {
-            double minNumber = Double.MAX_VALUE;
-            double maxNumber = Double.MIN_VALUE;
+    public static List<Double> rescaleToUnit(List<Double> numbers) {
+        double minNumber = Double.MAX_VALUE;
+        double maxNumber = Double.MIN_VALUE;
 
-            for (double number : numbers) {
-                if (number < minNumber) {
-                    minNumber = number;
-                }
-                if (number > maxNumber) {
-                    maxNumber = number;
-                }
+        for (double number : numbers) {
+            if (number < minNumber) {
+                minNumber = number;
             }
-
-            return numbers.stream()
-                          .map(x -> (x - minNumber) / (maxNumber - minNumber))
-                          .toList();
+            if (number > maxNumber) {
+                maxNumber = number;
+            }
         }
+
+        return numbers.stream()
+                      .map(x -> (x - minNumber) / (maxNumber - minNumber))
+                      .toList();
     }
 
     // Transformed Code
-    static class HumanEval_21_Transformed {
-        public List<Double> normalizeValues(List<Double> values) {
-            double smallestValue = Double.MAX_VALUE;
-            double largestValue = Double.MIN_VALUE;
+    public static List<Double> normalizeValues(List<Double> values) {
+        double smallestValue = Double.MAX_VALUE;
+        double largestValue = Double.MIN_VALUE;
 
-            // Find the smallest and largest values in the list
-            for (double value : values) {
-                if (value < smallestValue) {
-                    smallestValue = value;
-                }
-                if (value > largestValue) {
-                    largestValue = value;
-                }
+        // Find the smallest and largest values in the list
+        for (double value : values) {
+            if (value < smallestValue) {
+                smallestValue = value;
             }
-
-            double rangeValue = largestValue - smallestValue;
-
-            List<Double> normalizedList = new java.util.ArrayList<>();
-            for (double value : values) {
-                double normalizedValue = (value - smallestValue) / rangeValue;
-                normalizedList.add(normalizedValue);
+            if (value > largestValue) {
+                largestValue = value;
             }
-
-            return normalizedList;
         }
+
+        double rangeValue = largestValue - smallestValue;
+
+        List<Double> normalizedList = new ArrayList<>();
+        for (double value : values) {
+            double normalizedValue = (value - smallestValue) / rangeValue;
+            normalizedList.add(normalizedValue);
+        }
+
+        return normalizedList;
     }
 
     // Test Cases
@@ -75,61 +72,51 @@ public class HumanEval_21 {
 
     @Test
     public void test_0() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[0][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[0][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[0][0]), normalizeValues((List<Double>) testCases[0][0]));
     }
 
     @Test
     public void test_1() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[1][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[1][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[1][0]), normalizeValues((List<Double>) testCases[1][0]));
     }
 
     @Test
     public void test_2() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[2][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[2][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[2][0]), normalizeValues((List<Double>) testCases[2][0]));
     }
 
     @Test
     public void test_3() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[3][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[3][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[3][0]), normalizeValues((List<Double>) testCases[3][0]));
     }
 
     @Test
     public void test_4() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[4][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[4][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[4][0]), normalizeValues((List<Double>) testCases[4][0]));
     }
 
     @Test
     public void test_5() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[5][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[5][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[5][0]), normalizeValues((List<Double>) testCases[5][0]));
     }
 
     @Test
     public void test_6() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[6][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[6][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[6][0]), normalizeValues((List<Double>) testCases[6][0]));
     }
 
     @Test
     public void test_7() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[7][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[7][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[7][0]), normalizeValues((List<Double>) testCases[7][0]));
     }
 
     @Test
     public void test_8() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[8][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[8][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[8][0]), normalizeValues((List<Double>) testCases[8][0]));
     }
 
     @Test
     public void test_9() {
-        assertEquals(HumanEval_21_Source.rescaleToUnit((List<Double>) testCases[9][0]), 
-                     new HumanEval_21_Transformed().normalizeValues((List<Double>) testCases[9][0]));
+        assertEquals(rescaleToUnit((List<Double>) testCases[9][0]), normalizeValues((List<Double>) testCases[9][0]));
     }
 }

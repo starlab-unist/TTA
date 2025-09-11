@@ -5,93 +5,118 @@ import org.junit.jupiter.params.provider.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_17 {
 
     // Source Code
-    public static List<Integer> parseMusic(String musicString) {
-        String[] notes = musicString.split(" ");
-        List<Integer> result = new ArrayList<>();
-        
-        for (String note : notes) {
-            switch (note) {
-                case "o":
-                    result.add(4);
-                    break;
-                case "o|":
-                    result.add(2);
-                    break;
-                case ".|":
-                    result.add(1);
-                    break;
+    static class HumanEval_17_Source {
+        public static List<Integer> parseMusic(String musicString) {
+            String[] notes = musicString.split(" ");
+            List<Integer> result = new ArrayList<>();
+            
+            for (String note : notes) {
+                switch (note) {
+                    case "o":
+                        result.add(4);
+                        break;
+                    case "o|":
+                        result.add(2);
+                        break;
+                    case ".|":
+                        result.add(1);
+                        break;
+                }
             }
+            
+            return result;
         }
-        
-        return result;
     }
 
     // Transformed Code
-    public static List<Integer> extractNotes(String musicalNotation) {
-        HashMap<String, Integer> noteMapping = new HashMap<>();
-        noteMapping.put("o", 4);
-        noteMapping.put("o|", 2);
-        noteMapping.put(".|", 1);
-
-        String[] notes = musicalNotation.split(" ");
-        List<Integer> result = new ArrayList<>();
-
-        for (String note : notes) {
-            if (!note.isEmpty() && noteMapping.containsKey(note)) {
-                result.add(noteMapping.get(note));
-            }
-        }
-
-        return result;
-    }
-}
-
-class HumanEval_17Test {
-
-    // Original implementation wrapper
-    static class OriginalImpl {
-        public static List<Integer> parseMusic(String musicString) {
-            return HumanEval_17.parseMusic(musicString);
-        }
-    }
-
-    // Transformed implementation wrapper
-    static class TransformedImpl {
+    static class HumanEval_17_Transformed {
         public static List<Integer> extractNotes(String musicalNotation) {
-            return HumanEval_17.extractNotes(musicalNotation);
+            java.util.HashMap<String, Integer> noteMapping = new java.util.HashMap<>();
+            noteMapping.put("o", 4);
+            noteMapping.put("o|", 2);
+            noteMapping.put(".|", 1);
+
+            String[] notes = musicalNotation.split(" ");
+            List<Integer> result = new ArrayList<>();
+
+            for (String note : notes) {
+                if (!note.isEmpty()) {
+                    result.add(noteMapping.get(note));
+                }
+            }
+
+            return result;
         }
     }
 
-    private static Stream<Arguments> provideTestCases() {
-        return Stream.of(
-            Arguments.arguments("o o| .|"),
-            Arguments.arguments("o o o"),
-            Arguments.arguments(".| .| .|"),
-            Arguments.arguments("o| o| o|"),
-            Arguments.arguments("o o| .| o| .|"),
-            Arguments.arguments(""),
-            Arguments.arguments("   "),
-            Arguments.arguments("o o| .| o| .| o o| .|"),
-            Arguments.arguments("o|"),
-            Arguments.arguments("o")
-        );
+    // Test Cases
+    private static final String[] testCases = {
+        "o o| .|",
+        "o o o",
+        ".| .| .|",
+        "o| o| o|",
+        "o o| .| o| .|",
+        "",
+        "   ",
+        "o o| .| o| .| o o| .|",
+        "o|",
+        "o"
+    };
+
+    @Test
+    public void test_0() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[0]), HumanEval_17_Transformed.extractNotes(testCases[0]));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideTestCases")
-    public void testParsing(String input) {
-        assertEquals(OriginalImpl.parseMusic(input), TransformedImpl.extractNotes(input));
+    @Test
+    public void test_1() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[1]), HumanEval_17_Transformed.extractNotes(testCases[1]));
+    }
+
+    @Test
+    public void test_2() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[2]), HumanEval_17_Transformed.extractNotes(testCases[2]));
+    }
+
+    @Test
+    public void test_3() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[3]), HumanEval_17_Transformed.extractNotes(testCases[3]));
+    }
+
+    @Test
+    public void test_4() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[4]), HumanEval_17_Transformed.extractNotes(testCases[4]));
+    }
+
+    @Test
+    public void test_5() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[5]), HumanEval_17_Transformed.extractNotes(testCases[5]));
+    }
+
+    @Test
+    public void test_6() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[6]), HumanEval_17_Transformed.extractNotes(testCases[6]));
+    }
+
+    @Test
+    public void test_7() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[7]), HumanEval_17_Transformed.extractNotes(testCases[7]));
+    }
+
+    @Test
+    public void test_8() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[8]), HumanEval_17_Transformed.extractNotes(testCases[8]));
+    }
+
+    @Test
+    public void test_9() {
+        assertEquals(HumanEval_17_Source.parseMusic(testCases[9]), HumanEval_17_Transformed.extractNotes(testCases[9]));
     }
 }

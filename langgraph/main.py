@@ -1,4 +1,3 @@
-
 import os
 import re
 import json
@@ -23,25 +22,73 @@ from generate_test_js import extract_test_cases
 
 from typing import TypedDict, Optional, Dict, Any, List, Tuple
 
+# =========================
+# OpenAI-compatible adapter (추가)
+# =========================
+from openai import OpenAI
+import httpx
+from types import SimpleNamespace
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+
+def _lc_messages_to_openai(messages: List[BaseMessage]) -> List[Dict[str, str]]:
+    """LangChain Message -> OpenAI /v1 chat messages 로 변환"""
+    out: List[Dict[str, str]] = []
+    for m in messages:
+        if isinstance(m, SystemMessage):
+            out.append({"role": "system", "content": m.content})
+        elif isinstance(m, HumanMessage):
+            out.append({"role": "user", "content": m.content})
+        else:
+            # 기타 타입은 assistant 로 처리
+            out.append({"role": "assistant", "content": m.content})
+    return out
+
+class OpenAICompat:
+    """
+    OpenAI Python SDK로 /v1/chat/completions 호출.
+    ChatOllama와 동일하게 .invoke(messages) -> SimpleNamespace(content=...) 형태를 제공합니다.
+    """
+    def __init__(self, model: str, base_url: str, api_key: str, timeout: int = 120, temperature: float = 0.0):
+        base_url = base_url.rstrip("/")
+        if not base_url.endswith("/v1"):
+            base_url = base_url + "/v1"
+        self.client = OpenAI(
+            base_url=base_url,
+            api_key=api_key,
+            http_client=httpx.Client(timeout=timeout),
+        )
+        self.model = model
+        self.temperature = temperature
+
+    def invoke(self, messages: List[BaseMessage]) -> SimpleNamespace:
+        payload = {
+            "model": self.model,
+            "messages": _lc_messages_to_openai(messages),
+            "temperature": self.temperature,
+        }
+        resp = self.client.chat.completions.create(**payload)
+        content = resp.choices[0].message.content or ""
+        return SimpleNamespace(content=content)
+
+# =========================
+# 원본 로직 + compat 옵션만 추가
+# =========================
+
 def sem_equiv_test(
     origin_code: str = None,
     generate_equiv_model: str = None,
     generate_test_model: str = None,
     temperature: float = 1.0,
+
+    # ---- OpenAI-compatible 옵션 (추가) ----
+    generate_test_backend: str = "ollama",          # "ollama"(기본) 또는 "openai"
+    openai_base_url: str = "http://localhost:11434/v1",
+    openai_api_key: str = "EMPTY",
+    llm_timeout: int = 120,
 ):
     """
-    1. 입력된 소스 코드의 동등 변형 생성
-    2. 원본 소스 코드와 동등 변형 코드 간의 동등성을 검증하는 테스트 케이스 생성
-    자세한 내용은 같은 디렉토리에 첨부한 '동등 변형 기반 변환기 검증 실험 매뉴얼.pdf' 참조
-    
-    Arguments:
-        origin_code {str} -- 원본 소스 코드
-        generate_equiv_model {str} -- 동등 변형을 생성하는 LLM의 모델 API, Huggingface 사용
-        generate_test_model {str} -- 테스트 케이스를 생성하는 LLM 모델 API, Ollama 사용
-        temperature {float} -- LLM의 토큰 생성 시 top-p sampling의 정도를 조절하는 하이퍼파라미터. 높을수록 창의적인 답변, 낮을수록 정확한 답변이 생성됨 (default: 1.0).
-    
-    Returns:
-        Tuple(str, str) -- 생성된 동등 변형 코드, 테스트 케이스 코드
+    1. 입력된 소스 코드의 동등 변형 생성 (HF transformers)
+    2. 동등성 검증용 테스트 케이스 생성 (Ollama 기본, 필요 시 OpenAI 호환)
     """
     tokenizer = AutoTokenizer.from_pretrained(generate_equiv_model)
     model = AutoModelForCausalLM.from_pretrained(generate_equiv_model, device_map="auto", load_in_8bit=True)
@@ -81,8 +128,17 @@ def sem_equiv_test(
     del model, input_ids, attention_mask
     torch.cuda.empty_cache()
     
-    # 테스트 케이스 생성
-    llm = ChatOllama(model=generate_test_model, base_url="http://localhost:11434")
+    # 테스트 케이스 생성 LLM: 기본 Ollama, 선택적으로 OpenAI 호환
+    if generate_test_backend == "openai":
+        llm = OpenAICompat(
+            model=generate_test_model,
+            base_url=openai_base_url,
+            api_key=openai_api_key,
+            timeout=llm_timeout,
+            temperature=temperature,
+        )
+    else:
+        llm = ChatOllama(model=generate_test_model, base_url="http://localhost:11434")
     
     generate_test_prompt = "./data/prompts/generate-py-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-py-test.txt"
@@ -111,13 +167,12 @@ def sem_equiv_test(
         )
         
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
-        code_block = max(code_blocks, key=len).strip()
+        code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
         
         return {"test_cases": code_block}
     
     # node
     def run_test_cases(state: State) -> State:
-        
         try:
             with open(".tmp.py", 'w') as f:
                 f.write(state["test_cases"])
@@ -136,7 +191,7 @@ def sem_equiv_test(
         if result.returncode == 0 or state["retry_count"] == 3:
             return {"test_result": result.stdout, "is_failure": False}
         else:
-            return {"test_result": result.stderr, "is_failure": True, "retry_count": state["retry_count"] + 1, }
+            return {"test_result": result.stderr, "is_failure": True, "retry_count": state["retry_count"] + 1}
     
     # node
     def analyze_failure(state: State) -> State:
@@ -169,9 +224,9 @@ def sem_equiv_test(
         )
         
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
-        code_block = max(code_blocks, key=len).strip()
+        code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
         
-        return {"transformed_code": code_block, }
+        return {"transformed_code": code_block}
     
     # node
     def revise_test_cases(state: State) -> State:
@@ -185,7 +240,7 @@ def sem_equiv_test(
         )
         
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
-        code_block = max(code_blocks, key=len).strip()
+        code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
         
         return {"test_cases": code_block}
     
@@ -220,7 +275,7 @@ def sem_equiv_test(
     }
     
     result = graph.invoke(initial_state)
-    if result["retry_count"] == 3:
+    if result.get("retry_count", 0) == 3:
         print("Failed to generate test cases.")
     
     print(result)
@@ -233,23 +288,27 @@ def generate_test_js(
     test_code: str = None,
     model_api: str = None,
     temperature: float = 1.0,
+
+    # ---- OpenAI-compatible 옵션 (추가) ----
+    backend: str = "ollama",                    # "ollama"(기본) 또는 "openai"
+    base_url: str = "http://localhost:11434/v1",
+    api_key: str = "EMPTY",
+    llm_timeout: int = 120,
 ):
     """
-    번역된 소스 코드와 동등 변형 코드 간의 동등성을 검증하는 테스트 케이스 생성 코드.
-    중심 언어로 작성된 테스트 케이스를 통해 동일한 내용의 테스트 케이스를 생성하도록 구현됨.
-    자세한 내용은 같은 디렉토리에 첨부한 '동등 변형 기반 변환기 검증 실험 매뉴얼.pdf' 참조
-    
-    Arguments:
-        origin_target_code {str} -- 번역된 원본 소스 코드
-        sem_target_code {str} -- 번역된 동등 변형 코드
-        test_code {str} -- 중심 언어로 작성된 테스트 케이스 코드
-        model_api -- 테스트 케이스를 생성하는 LLM 모델 API, Ollama 사용
-        temperature {float} -- LLM의 토큰 생성 시 top-p sampling의 정도를 조절하는 하이퍼파라미터. 높을수록 창의적인 답변, 낮을수록 정확한 답변이 생성됨 (default: 1.0).
-    
-    Returns:
-        str -- 목표 언어로 작성된 테스트 케이스 코드
+    번역된 소스 코드와 동등 변형 코드 간 동등성 검증용 JS 테스트 케이스 생성.
+    로직 동일, LLM 백엔드만 선택 가능.
     """
-    llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
+    if backend == "openai":
+        llm = OpenAICompat(
+            model=model_api,
+            base_url=base_url,
+            api_key=api_key,
+            timeout=llm_timeout,
+            temperature=temperature,
+        )
+    else:
+        llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
     
     generate_test_prompt = "./data/prompts/generate-js-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-js-test.txt"
@@ -289,16 +348,14 @@ def generate_test_js(
         
         code_blocks = re.findall(r"```(?:javascript)?\n(.*?)```", response.content, re.DOTALL)
         if len(code_blocks) == 0:
-            code_blocks = [response]
+            code_blocks = [response.content]
         code_block = max(code_blocks, key=len).strip()
         
         return {"test_cases": code_block}
     
     # node
     def run_test_cases(state: State) -> State:
-        
         try:
-            
             with open("./.tmp/code.test.js", 'w') as f:
                 f.write(state["test_cases"])
             
@@ -353,7 +410,7 @@ def generate_test_js(
         )
         
         code_blocks = re.findall(r"```(?:javascript)?\n(.*?)```", response.content, re.DOTALL)
-        code_block = max(code_blocks, key=len).strip()
+        code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
         
         return {"test_cases": code_block}
     
@@ -387,7 +444,7 @@ def generate_test_js(
     }
     
     result = graph.invoke(initial_state)
-    if result["retry_count"] == 4:
+    if result.get("retry_count", 0) == 4:
         print("Failed to generate test cases")
 
     print(result)
@@ -401,9 +458,26 @@ def generate_test_java(
     test_code: str = None,
     model_api: str = None,
     temperature: float = 1.0,
+
+    # ---- OpenAI-compatible 옵션 (추가) ----
+    backend: str = "ollama",                    # "ollama"(기본) 또는 "openai"
+    base_url: str = "http://localhost:11434/v1",
+    api_key: str = "EMPTY",
+    llm_timeout: int = 120,
 ):
-    
-    llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
+    """
+    Java(JUnit) 테스트 코드 생성 파이프라인 — 로직 동일, LLM 백엔드만 선택 가능.
+    """
+    if backend == "openai":
+        llm = OpenAICompat(
+            model=model_api,
+            base_url=base_url,
+            api_key=api_key,
+            timeout=llm_timeout,
+            temperature=temperature,
+        )
+    else:
+        llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
 
     generate_test_prompt = "./data/prompts/generate-java-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-java-test.txt"
@@ -446,18 +520,6 @@ def generate_test_java(
         with open(path, "w", encoding="utf-8") as f:
             f.write(text)
 
-    def align_triplets(
-        source_map: Dict[int, str],
-        transform_map: Dict[int, str],
-        test_map: Dict[int, str],
-    ) -> List[Tuple[int, str, str, str]]:
-        
-        common = sorted(set(source_map.keys()) & set(transform_map.keys()) & set(test_map.keys()))
-        out: List[Tuple[int, str, str, str]] = []
-        for i in common:
-            out.append((i, source_map[i], transform_map[i], test_map[i]))
-        return out
-
     def render_prompt_jinja2(path: str, **vars):
         tpl = read_file(path)
         return ChatPromptTemplate.from_template(tpl, template_format="jinja2").format_messages(**vars)
@@ -492,12 +554,11 @@ def generate_test_java(
         return dst
 
     def extract_test_cases_hint(source_code: str) -> str:
-        # 기존 JS 파이프라인과 유사한 힌트 추출: 첫 class 앞의 직전 줄부터 끝까지
         lines = source_code.split("\n")
         start_idx = 0
         for i, line in enumerate(lines):
             if line.strip().startswith("class"):
-                start_idx = max(0, i - 1)  # 안전한 인덱싱
+                start_idx = max(0, i - 1)
                 break
         return "\n".join(lines[start_idx:])
 
@@ -537,19 +598,18 @@ def generate_test_java(
             )
             code = f"{header}public class {class_name} {{\n{code}\n}}\n"
 
-        # ✅ 항상 임포트 보강
         code = _ensure_imports_for_junit(code)
         return code, class_name
 
-    def route_after_run(state: State) -> str:
+    def route_after_run(state: "State") -> str:
         return "analyze_failure" if state.get("is_failure") else "end"
 
-    def route_after_analyze(state: State) -> str:
+    def route_after_analyze(state: "State") -> str:
         if state.get("retry_count", 0) >= 3:
             return "end"
         return "revise_test_cases" if state.get("failure_responding") == "revise_test_cases" else "end"
 
-    def generate_test_inputs(state: State) -> State:
+    def generate_test_inputs(state: "State") -> "State":
         """LLM을 사용해 테스트 코드 생성"""
         try:
             print("[DEBUG] Generating initial test code...")
@@ -569,14 +629,14 @@ def generate_test_java(
             print(f"[ERROR] LLM generation failed: {e}")
             return {"generated_test_code": "", "is_failure": True, "error_type": "generation"}
 
-    def write_and_compile(state: State) -> State:
+    def write_and_compile(state: "State") -> "State":
         """테스트 코드와 CUT를 파일로 쓰고 컴파일"""
         run_root = state["_run_root"]
         idx = state["_idx"]
         classes_dir = os.path.join(run_root, "classes")
         ensure_dir(classes_dir)
 
-        # CUT (Code Under Test) 작성
+        # CUT 작성
         cut_code = state["transformed_code"]
         cut_pkg = extract_package(cut_code)
         cut_public = extract_public_class_name(cut_code) or "CutClass"
@@ -625,7 +685,7 @@ def generate_test_java(
             "error_type": error_type,
         }
 
-    def run_tests(state: State) -> State:
+    def run_tests(state: "State") -> "State":
         """JUnit 테스트 실행"""
         if state["is_failure"]:
             return {"run_stdout": "", "run_stderr": "Skipped due to compile failure", "is_failure": True}
@@ -633,13 +693,12 @@ def generate_test_java(
         run_root = state["_run_root"]
         classes_dir = os.path.join(run_root, "classes")
 
-        # 모든 테스트 클래스 실행
         cmd = [
             "java", "-jar", junit_jar,
             "execute",
             "--class-path", classes_dir,
             "--scan-class-path",
-            "--details", "tree",  # 상세 출력
+            "--details", "tree",
         ]
         
         try:
@@ -657,7 +716,7 @@ def generate_test_java(
             "error_type": error_type,
         }
 
-    def analyze_failure(state: State) -> State:
+    def analyze_failure(state: "State") -> "State":
         """실패 분석 및 다음 액션 결정"""
         try:
             print(f"[DEBUG] Analyzing failure (retry: {state.get('retry_count', 0)})")
@@ -694,7 +753,7 @@ def generate_test_java(
             print(f"[ERROR] Analysis failed: {e}")
             return {"failure_analysis": str(e), "failure_responding": "end"}
 
-    def revise_test_cases(state: State) -> State:
+    def revise_test_cases(state: "State") -> "State":
         """실패 분석 기반 테스트 코드 수정"""
         try:
             print(f"[DEBUG] Revising test cases (retry: {state.get('retry_count', 0)})")
@@ -753,12 +812,7 @@ def generate_test_java(
 
     graph = workflow.compile()
 
-    # 메인 처리 루프
-    success_count = 0
-    fail_count = 0
-        
     logging.langsmith("VTW Project(JAVA)")
-    
 
     run_root = os.path.join("./.tmp")
     if os.path.exists(run_root):
@@ -779,13 +833,12 @@ def generate_test_java(
         "error_type": "",
         "failure_analysis": "",
         "failure_responding": "end",
-        "_run_root": run_root,  
-        "_idx": idx,            
-    } 
+        "_run_root": run_root,
+        "_idx": 0,
+    }
 
     result: Dict[str, Any] = graph.invoke(initial_state)
 
-    # 간단한 출력
     if result.get("compile_stderr"):
         print(f"[Compile Error]\n{result['compile_stderr'][:500]}")
     if result.get("run_stderr"):
@@ -793,7 +846,7 @@ def generate_test_java(
     if result.get("failure_analysis"):
         print(f"[Analysis]\n{result['failure_analysis'][:500]}")
 
-    if result["retry_count"] == 3:
+    if result.get("retry_count", 0) == 3:
         print("Failed to generate test cases")
 
     print(result)
@@ -801,7 +854,7 @@ def generate_test_java(
     
     return result["generated_test_code"]
 
-# 테스트 코드
+# 테스트 코드 (원본 유지)
 if __name__=="__main__":
     
     origin_code = """def has_close_elements(numbers: List[float], threshold: float) -> bool:
@@ -818,7 +871,11 @@ if __name__=="__main__":
     sem_equiv = sem_equiv_test(
         origin_code,
         "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "qwen2.5-coder:32b-instruct-q8_0"
+        "qwen2.5-coder:32b-instruct-q8_0",
+        # 필요 시 OpenAI 호환으로:
+        # generate_test_backend="openai",
+        # openai_base_url="https://api.openai.com/v1",
+        # openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
     )
     
     print(sem_equiv[0])
@@ -873,7 +930,6 @@ public class HumanEval_0 {
     }
 }"""
     
-    # test_code = sem_equiv[0]
     test_code = """class TestFunctionEquivalence(unittest.TestCase):
 
     test_cases = [
@@ -940,8 +996,11 @@ if __name__ == '__main__':
     temperature = 1.0
     
     result = generate_test_java(
-        origin_target_code, sem_target_code, test_code, model_api, temperature
+        origin_target_code, sem_target_code, test_code, model_api, temperature,
+        # 필요 시 OpenAI 호환으로:
+        backend="openai",
+        base_url="https://api.openai.com/v1",
+        api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
     )
     
     print(result)
-    

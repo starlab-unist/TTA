@@ -22,6 +22,7 @@ from collections import Counter
 from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI  # ← OpenAI compatible 추가
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -29,14 +30,14 @@ from langchain_core.exceptions import OutputParserException
 # =========================
 # Defaults
 # =========================
-MODEL_NAME = "qwen2.5-coder:32b-instruct-q8_0"
+MODEL_NAME = "qwen2.5-coder:32b-instruct-q8_0"   # 기본 Ollama 모델명
 PY_TIMEOUT = 15
 JS_TIMEOUT = 20
 JAVA_TIMEOUT = 45
 JAVAC_TIMEOUT = 60
 
 DEBUG = False
-TRUNC = 800  
+TRUNC = 800
 
 def dbg(*args):
     if DEBUG:
@@ -98,22 +99,44 @@ Rules:
 - Do NOT output anything else.
 """
 
-def build_extract_chain(model_name: str = MODEL_NAME):
+# ---------- LLM 팩토리 : 기존 로직 보존 + 백엔드 선택만 추가 ----------
+def _make_llm(backend: str, model_name: str, base_url: Optional[str], api_key: Optional[str]):
+    """
+    backend: 'ollama' | 'openai'
+      - ollama  : langchain_ollama.ChatOllama (기본)
+      - openai  : langchain_openai.ChatOpenAI (OpenAI-compatible: OpenAI/vLLM/LM Studio 등)
+    """
+    if backend == "openai":
+        # OpenAI 호환: base_url 과 api_key 필요 (OpenAI 공식은 base_url=https://api.openai.com/v1)
+        return ChatOpenAI(
+            model=model_name,
+            base_url=base_url,
+            api_key=api_key,
+            temperature=0.0,
+        )
+    # 기본: Ollama
+    return ChatOllama(
+        model=model_name,
+        base_url=base_url or "http://localhost:11434",
+        temperature=0.0,
+    )
+
+def build_extract_chain(model_name: str, backend: str, base_url: Optional[str], api_key: Optional[str]):
     parser = PydanticOutputParser(pydantic_object=ExtractSchema)
     prompt = ChatPromptTemplate.from_messages(
         [("system", SYSTEM_PROMPT_EXTRACT), ("human", "{{code}}")],
         template_format="jinja2",
     )
-    llm = ChatOllama(model=model_name, temperature=0.0)
+    llm = _make_llm(backend=backend, model_name=model_name, base_url=base_url, api_key=api_key)
     return prompt | llm, parser
 
-def build_judge_chain(model_name: str = MODEL_NAME):
+def build_judge_chain(model_name: str, backend: str, base_url: Optional[str], api_key: Optional[str]):
     parser = PydanticOutputParser(pydantic_object=AnswerSchema)
     prompt = ChatPromptTemplate.from_messages(
         [("system", JUDGE_SYSTEM_PROMPT), ("human", "{{question}}")],
         template_format="jinja2",
     )
-    llm = ChatOllama(model=model_name, temperature=0.0)
+    llm = _make_llm(backend=backend, model_name=model_name, base_url=base_url, api_key=api_key)
     return prompt | llm, parser
 
 # ---- safer JSON extractor (balanced braces) ----
@@ -134,7 +157,6 @@ def _recover_json(text: str) -> str:
     return txt[start:]  # fallback
 
 def try_extract_inputs(chain, parser, code_text: str) -> Optional[ExtractSchema]:
-  
     raw = chain.invoke({"code": code_text}).content
     if DEBUG:
         print("[DEBUG][LLM Raw Extract]", raw[:TRUNC].replace("\n", " ⏎ "))
@@ -150,7 +172,6 @@ def try_extract_inputs(chain, parser, code_text: str) -> Optional[ExtractSchema]
         return None
 
 def judge_equal(chain, parser, py_code: str, other_code: str, other_lang_label: str) -> str:
-   
     q = (
         "Decide if the following TWO test suites use the SAME INPUTS.\n\n"
         "=== Python Test Code ===\n" + py_code + "\n\n"
@@ -162,7 +183,6 @@ def judge_equal(chain, parser, py_code: str, other_code: str, other_lang_label: 
         print("[DEBUG][LLM Raw Judge]", raw[:TRUNC].replace("\n", " ⏎ "))
     verdict = parser.parse(_recover_json(raw)).answer
     return verdict
-
 
 # =========================
 # Input normalization & comparison
@@ -295,7 +315,8 @@ def run_java_test_scan(classes_dir: str, junit_jar: str, timeout: int = JAVA_TIM
 # =========================
 def main():
     ap = argparse.ArgumentParser(description="Compare Python vs JS/Java tests (single pair)")
-    # positional with defaults via env + nargs='?'
+
+    # 기존 인자
     ap.add_argument(
         "python_test",
         type=str,
@@ -334,14 +355,47 @@ def main():
         action="store_true",
         help="Skip compiling Java sources before running JUnit."
     )
-
     ap.add_argument("--debug", action="store_true", help="Print concise debug logs")
+
+    # ----- 추가: LLM 백엔드 선택 / 모델 / 엔드포인트 -----
+    ap.add_argument(
+        "--backend",
+        type=str,
+        choices=["ollama", "openai"],
+        default=os.environ.get("LLM_BACKEND", "ollama"),
+        help="LLM backend: 'ollama' (default) or 'openai' (OpenAI-compatible)"
+    )
+    ap.add_argument(
+        "--model",
+        type=str,
+        default=os.environ.get("LLM_MODEL", MODEL_NAME),
+        help="Model name (e.g., qwen2.5-coder:32b-instruct-q8_0 or gpt-4o-mini)"
+    )
+    ap.add_argument(
+        "--base_url",
+        type=str,
+        default=os.environ.get("LLM_BASE_URL", None),
+        help="Base URL for LLM. Ollama default: http://localhost:11434 . OpenAI: https://api.openai.com/v1"
+    )
+    ap.add_argument(
+        "--api_key",
+        type=str,
+        default=os.environ.get("LLM_API_KEY", None),
+        help="API key (required for OpenAI-compatible backends)"
+    )
 
     args = ap.parse_args()
 
-# --- Input comparison (LLM) ---
-    extract_chain, extract_parser = build_extract_chain(MODEL_NAME)
-    judge_chain, judge_parser = build_judge_chain(MODEL_NAME)
+    global DEBUG
+    DEBUG = args.debug
+
+    # --- Input comparison (LLM) ---
+    extract_chain, extract_parser = build_extract_chain(
+        model_name=args.model, backend=args.backend, base_url=args.base_url, api_key=args.api_key
+    )
+    judge_chain, judge_parser = build_judge_chain(
+        model_name=args.model, backend=args.backend, base_url=args.base_url, api_key=args.api_key
+    )
 
     with open(args.python_test, encoding="utf-8") as f:
         py_code = f.read()

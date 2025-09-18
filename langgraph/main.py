@@ -6,11 +6,11 @@ import shutil
 import subprocess
 from typing import TypedDict
 
-import torch
+# import torch
 
-from transformers import (
-    AutoTokenizer, AutoModelForCausalLM
-)
+# from transformers import (
+#     AutoTokenizer, AutoModelForCausalLM
+# )
 
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
@@ -76,7 +76,6 @@ class OpenAICompat:
 
 def sem_equiv_test(
     origin_code: str = None,
-    generate_equiv_model: str = None,
     generate_test_model: str = None,
     temperature: float = 1.0,
 
@@ -90,43 +89,33 @@ def sem_equiv_test(
     1. 입력된 소스 코드의 동등 변형 생성 (HF transformers)
     2. 동등성 검증용 테스트 케이스 생성 (Ollama 기본, 필요 시 OpenAI 호환)
     """
-    tokenizer = AutoTokenizer.from_pretrained(generate_equiv_model)
-    model = AutoModelForCausalLM.from_pretrained(generate_equiv_model, device_map="auto", load_in_8bit=True)
-    model.eval()
-    
     system = open("./data/prompts/generate-equiv-system.txt", 'r').read()
     user = open("./data/prompts/generate-equiv-user.txt", 'r').read()
-    
+
     examples = json.load(open("./data/prompts/examples.json", 'r'))["Python"]
-    
+
     # 동등변형 코드 생성
     messages = [
         {"role": "system", "content": system},
-        {"role": "user", "content": user.format(source_example=examples["Source"], target_example=examples["Target"], language="python", source=origin_code)}
+        {"role": "user", "content": user.format(
+            source_example=examples["Source"],
+            target_example=examples["Target"],
+            language="python",
+            source=origin_code
+        )}
     ]
-    
-    inputs = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    model_inputs = tokenizer([inputs], return_tensors="pt")
 
-    input_ids = model_inputs.input_ids
-    attention_mask = model_inputs.attention_mask
+    client = OpenAI()
 
-    with torch.no_grad():
-        output_ids = model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=512,
-            temperature=temperature,
-        )
-        
-    responses = tokenizer.batch_decode([
-        output_id[len(input_id):] for input_id, output_id in zip(input_ids, output_ids)
-    ], skip_special_tokens=True)
-    
-    equiv_code = extract_code_block(responses[0])
-    
-    del model, input_ids, attention_mask
-    torch.cuda.empty_cache()
+    response = client.chat.completions.create(
+        model=generate_test_model,  # 원하는 OpenAI 모델로 변경
+        messages=messages,
+        max_tokens=512,
+        temperature=temperature,
+    )
+
+    # 응답에서 코드 추출
+    equiv_code = extract_code_block(response.choices[0].message.content)
     
     # 테스트 케이스 생성 LLM: 기본 Ollama, 선택적으로 OpenAI 호환
     if generate_test_backend == "openai":

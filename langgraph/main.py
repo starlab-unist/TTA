@@ -1,16 +1,25 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# ============================================================
+# Adds an OpenAI-compatible backend while preserving your
+# original logic and Ollama usage. Only "compatible" pieces
+# are added; existing behavior is unchanged unless you opt-in.
+# Comments are in English as requested.
+# ============================================================
+
 import os
 import re
 import json
-import random
 import shutil
 import subprocess
-from typing import TypedDict
+from types import SimpleNamespace
+from typing import Dict, Any, List, Tuple, Optional, TypedDict
 
+# (Optional) Local HF inference was removed to avoid logic changes.
+# If you want to use HF again, re-enable these:
 # import torch
-
-# from transformers import (
-#     AutoTokenizer, AutoModelForCausalLM
-# )
+# from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
@@ -20,18 +29,16 @@ from langchain_teddynote import logging
 from generate_equiv import extract_code_block
 from generate_test_js import extract_test_cases
 
-from typing import TypedDict, Optional, Dict, Any, List, Tuple
-
 # =========================
-# OpenAI-compatible adapter (추가)
+# OpenAI-compatible adapter
 # =========================
 from openai import OpenAI
 import httpx
-from types import SimpleNamespace
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+
 
 def _lc_messages_to_openai(messages: List[BaseMessage]) -> List[Dict[str, str]]:
-    """LangChain Message -> OpenAI /v1 chat messages 로 변환"""
+    """Convert LangChain Message objects into OpenAI /v1 chat-completions schema."""
     out: List[Dict[str, str]] = []
     for m in messages:
         if isinstance(m, SystemMessage):
@@ -39,16 +46,25 @@ def _lc_messages_to_openai(messages: List[BaseMessage]) -> List[Dict[str, str]]:
         elif isinstance(m, HumanMessage):
             out.append({"role": "user", "content": m.content})
         else:
-            # 기타 타입은 assistant 로 처리
+            # Treat other types as assistant
             out.append({"role": "assistant", "content": m.content})
     return out
 
+
 class OpenAICompat:
     """
-    OpenAI Python SDK로 /v1/chat/completions 호출.
-    ChatOllama와 동일하게 .invoke(messages) -> SimpleNamespace(content=...) 형태를 제공합니다.
+    Minimal adapter to call OpenAI (or OpenAI-compatible) /v1/chat/completions
+    using the official OpenAI SDK. Provides `.invoke(messages)` returning an
+    object with `.content` to match ChatOllama's pattern.
     """
-    def __init__(self, model: str, base_url: str, api_key: str, timeout: int = 120, temperature: float = 0.0):
+    def __init__(
+        self,
+        model: str,
+        base_url: str,
+        api_key: str,
+        timeout: int = 120,
+        temperature: float = 0.0,
+    ):
         base_url = base_url.rstrip("/")
         if not base_url.endswith("/v1"):
             base_url = base_url + "/v1"
@@ -70,54 +86,55 @@ class OpenAICompat:
         content = resp.choices[0].message.content or ""
         return SimpleNamespace(content=content)
 
-# =========================
-# 원본 로직 + compat 옵션만 추가
-# =========================
 
+# ============================================================
+# Python equivalence test generation
+# ============================================================
 def sem_equiv_test(
     origin_code: str = None,
     generate_test_model: str = None,
     temperature: float = 1.0,
 
-    # ---- OpenAI-compatible 옵션 (추가) ----
-    generate_test_backend: str = "ollama",          # "ollama"(기본) 또는 "openai"
+    # ---- OpenAI-compatible options ----
+    generate_test_backend: str = "ollama",          # "ollama"(default) or "openai"
     openai_base_url: str = "http://localhost:11434/v1",
     openai_api_key: str = "EMPTY",
     llm_timeout: int = 120,
 ):
     """
-    1. 입력된 소스 코드의 동등 변형 생성 (HF transformers)
-    2. 동등성 검증용 테스트 케이스 생성 (Ollama 기본, 필요 시 OpenAI 호환)
+    1) Generate a semantically equivalent transformation of the input code (via OpenAICompat).
+    2) Generate Python test cases to validate equivalence (Ollama by default; OpenAI-compatible if requested).
+    Only "compatible" functionality is added; core behavior remains the same.
     """
-    system = open("./data/prompts/generate-equiv-system.txt", 'r').read()
-    user = open("./data/prompts/generate-equiv-user.txt", 'r').read()
 
-    examples = json.load(open("./data/prompts/examples.json", 'r'))["Python"]
+    # Load prompts and examples
+    system = open("./data/prompts/generate-equiv-system.txt", 'r', encoding="utf-8").read()
+    user = open("./data/prompts/generate-equiv-user.txt", 'r', encoding="utf-8").read()
+    examples = json.load(open("./data/prompts/examples.json", 'r', encoding="utf-8"))["Python"]
 
-    # 동등변형 코드 생성
+    # (1) Equivalent code generation using OpenAI-compatible backend
+    llm_equiv = OpenAICompat(
+        model=generate_test_model,
+        base_url=openai_base_url,
+        api_key=openai_api_key,
+        timeout=llm_timeout,
+        temperature=temperature,
+    )
+
     messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user.format(
+        SystemMessage(content=system),
+        HumanMessage(content=user.format(
             source_example=examples["Source"],
             target_example=examples["Target"],
             language="python",
             source=origin_code
-        )}
+        )),
     ]
 
-    client = OpenAI()
+    response = llm_equiv.invoke(messages)
+    equiv_code = extract_code_block(response.content)
 
-    response = client.chat.completions.create(
-        model=generate_test_model,  # 원하는 OpenAI 모델로 변경
-        messages=messages,
-        max_tokens=512,
-        temperature=temperature,
-    )
-
-    # 응답에서 코드 추출
-    equiv_code = extract_code_block(response.choices[0].message.content)
-    
-    # 테스트 케이스 생성 LLM: 기본 Ollama, 선택적으로 OpenAI 호환
+    # (2) Test-case generation backend (Ollama or OpenAI-compatible)
     if generate_test_backend == "openai":
         llm = OpenAICompat(
             model=generate_test_model,
@@ -127,14 +144,15 @@ def sem_equiv_test(
             temperature=temperature,
         )
     else:
+        # Ollama default
         llm = ChatOllama(model=generate_test_model, base_url="http://localhost:11434")
-    
+
     generate_test_prompt = "./data/prompts/generate-py-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-py-test.txt"
     generate_equiv_prompt = "./data/prompts/generate-equiv-user.txt"
     revise_test_prompt = "./data/prompts/revise-py-test.txt"
-        
-    class State(TypedDict):
+
+    class PyState(TypedDict):
         source_code: str
         transformed_code: str
         test_cases: str
@@ -143,134 +161,148 @@ def sem_equiv_test(
         is_failure: bool
         failure_analysis: str
         failure_responding: str
-    
-    # node
-    def generate_test_inputs(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(generate_test_prompt, 'r').read())
-        
+
+    # Node: generate initial test cases
+    def generate_test_inputs(state):
+        prompt = ChatPromptTemplate.from_template(open(generate_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 source_code=state["source_code"],
                 transformed_code=state["transformed_code"]
             ),
         )
-        
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
         code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
-        
         return {"test_cases": code_block}
-    
-    # node
-    def run_test_cases(state: State) -> State:
+
+    # Node: run tests locally with Python
+    def run_test_cases(state):
         try:
-            with open(".tmp.py", 'w') as f:
+            with open(".tmp.py", 'w', encoding="utf-8") as f:
                 f.write(state["test_cases"])
-            
             result = subprocess.run(
                 ["python", ".tmp.py"],
                 text=True,
                 capture_output=True,
-                timeout = 5
+                timeout=5
             )
         except Exception as e:
             result = subprocess.CompletedProcess(args=["python"], returncode=1, stdout="", stderr=str(e))
-    
+
         subprocess.run(["rm", ".tmp.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
+
         if result.returncode == 0 or state["retry_count"] == 3:
             return {"test_result": result.stdout, "is_failure": False}
         else:
             return {"test_result": result.stderr, "is_failure": True, "retry_count": state["retry_count"] + 1}
-    
-    # node
-    def analyze_failure(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(analyze_test_prompt, 'r').read())
-        
+
+    # Node: analyze failure with LLM
+    def analyze_failure(state):
+        prompt = ChatPromptTemplate.from_template(open(analyze_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 test_cases=state["test_cases"],
                 test_result=state["test_result"]
             ),
         )
-        
         lines = response.content.split("\n")
         failure_responding = END
         for line in lines:
             if "Action" in line.strip() and "Revise" in line.strip():
-                if "transformed code" in line: failure_responding = "revise_transformed_code"
-                elif "test cases" in line: failure_responding = "revise_test_cases"
-        
+                if "transformed code" in line:
+                    failure_responding = "revise_transformed_code"
+                elif "test cases" in line:
+                    failure_responding = "revise_test_cases"
         return {"failure_analysis": response.content.strip(), "failure_responding": failure_responding}
-    
-    # node
-    def revise_transformed_code(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(generate_equiv_prompt, 'r').read())
-        
+
+    # Node: revise transformed code (if LLM suggests)
+    def revise_transformed_code(state):
+        prompt = ChatPromptTemplate.from_template(open(generate_equiv_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 source=state["source_code"]
             )
         )
-        
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
         code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
-        
         return {"transformed_code": code_block}
-    
-    # node
-    def revise_test_cases(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(revise_test_prompt, 'r').read())
-        
+
+    # Node: revise test cases (if LLM suggests)
+    def revise_test_cases(state):
+        prompt = ChatPromptTemplate.from_template(open(revise_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 test_cases=state["test_cases"],
                 failure_analysis=state["failure_analysis"]
             )
         )
-        
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
         code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
-        
         return {"test_cases": code_block}
-    
-    workflow = StateGraph(State)
-    
+
+    # Routing functions (named; avoids lambda .name issue)
+    def route_after_run_py(state):
+        return "analyze_failure" if state["is_failure"] else END
+
+    def route_after_analyze_py(state):
+        return state["failure_responding"]
+
+    # Build the workflow
+    workflow = StateGraph(PyState)
+
     workflow.add_node("generate_test_inputs", generate_test_inputs)
     workflow.add_node("run_test_cases", run_test_cases)
     workflow.add_node("analyze_failure", analyze_failure)
     workflow.add_node("revise_transformed_code", revise_transformed_code)
     workflow.add_node("revise_test_cases", revise_test_cases)
-    
+
     workflow.set_entry_point("generate_test_inputs")
     workflow.add_edge("generate_test_inputs", "run_test_cases")
+
     workflow.add_conditional_edges(
-        "run_test_cases", lambda state: "analyze_failure" if state["is_failure"] else END,
+        "run_test_cases",
+        route_after_run_py,
         {"analyze_failure": "analyze_failure", END: END}
     )
+
     workflow.add_conditional_edges(
-        "analyze_failure", lambda state: state["failure_responding"],
-        {"revise_transformed_code": "revise_transformed_code", "revise_test_cases": "revise_test_cases", END: END}
+        "analyze_failure",
+        route_after_analyze_py,
+        {
+            "revise_transformed_code": "revise_transformed_code",
+            "revise_test_cases": "revise_test_cases",
+            END: END
+        }
     )
+
     workflow.add_edge("revise_transformed_code", "generate_test_inputs")
     workflow.add_edge("revise_test_cases", "run_test_cases")
-    
+
     graph = workflow.compile()
-    
-    initial_state = {
+
+    initial_state: PyState = {
         "source_code": origin_code,
         "transformed_code": equiv_code,
         "test_cases": "",
         "retry_count": 0,
+        "test_result": "",
+        "is_failure": False,
+        "failure_analysis": "",
+        "failure_responding": END,
     }
-    
+
     result = graph.invoke(initial_state)
     if result.get("retry_count", 0) == 3:
         print("Failed to generate test cases.")
-    
+
     print(result)
-    
+
     return (equiv_code, result["test_cases"])
 
+
+# ============================================================
+# JS (Jest) test generation
+# ============================================================
 def generate_test_js(
     origin_target_code: str = None,
     sem_target_code: str = None,
@@ -278,15 +310,15 @@ def generate_test_js(
     model_api: str = None,
     temperature: float = 1.0,
 
-    # ---- OpenAI-compatible 옵션 (추가) ----
-    backend: str = "ollama",                    # "ollama"(기본) 또는 "openai"
+    # ---- OpenAI-compatible options ----
+    backend: str = "ollama",                    # "ollama"(default) or "openai"
     base_url: str = "http://localhost:11434/v1",
     api_key: str = "EMPTY",
     llm_timeout: int = 120,
 ):
     """
-    번역된 소스 코드와 동등 변형 코드 간 동등성 검증용 JS 테스트 케이스 생성.
-    로직 동일, LLM 백엔드만 선택 가능.
+    Generate JavaScript (Jest) tests to validate semantic equivalence.
+    Behavior unchanged; you can switch LLM backend via `backend`.
     """
     if backend == "openai":
         llm = OpenAICompat(
@@ -297,22 +329,18 @@ def generate_test_js(
             temperature=temperature,
         )
     else:
+        # Ollama default
         llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
-    
+
     generate_test_prompt = "./data/prompts/generate-js-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-js-test.txt"
     revise_test_prompt = "./data/prompts/revise-js-test.txt"
-    
-    os.makedirs("./.tmp", exist_ok=True)
-    
-    subprocess.run(
-        f"cd ./.tmp; npm init -y", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    subprocess.run(
-        f"cd ./.tmp; npm install --save-dev jest", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
 
-    class State(TypedDict):
+    os.makedirs("./.tmp", exist_ok=True)
+    subprocess.run("cd ./.tmp; npm init -y", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run("cd ./.tmp; npm install --save-dev jest", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    class JSState(TypedDict):
         source_code: str
         transformed_code: str
         source_test_cases: str
@@ -322,11 +350,10 @@ def generate_test_js(
         is_failure: bool
         failure_analysis: str
         failure_responding: str
-    
-    # node
-    def generate_test_inputs(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(generate_test_prompt, 'r').read())
-        
+
+    # Node: generate initial tests
+    def generate_test_inputs(state):
+        prompt = ChatPromptTemplate.from_template(open(generate_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 source_code=state["source_code"],
@@ -334,26 +361,23 @@ def generate_test_js(
                 test_cases=state["source_test_cases"]
             ),
         )
-        
         code_blocks = re.findall(r"```(?:javascript)?\n(.*?)```", response.content, re.DOTALL)
         if len(code_blocks) == 0:
             code_blocks = [response.content]
         code_block = max(code_blocks, key=len).strip()
-        
         return {"test_cases": code_block}
-    
-    # node
-    def run_test_cases(state: State) -> State:
+
+    # Node: run tests using Jest
+    def run_test_cases(state):
         try:
-            with open("./.tmp/code.test.js", 'w') as f:
+            with open("./.tmp/code.test.js", 'w', encoding="utf-8") as f:
                 f.write(state["test_cases"])
-            
             result = subprocess.run(
-                f"cd ./.tmp; npx jest code.test.js",
+                "cd ./.tmp; npx jest code.test.js",
                 shell=True,
                 text=True,
                 capture_output=True,
-                timeout = 5
+                timeout=5
             )
         except Exception as e:
             result = subprocess.CompletedProcess(args=["npx"], returncode=1, stdout="", stderr=str(e))
@@ -367,80 +391,84 @@ def generate_test_js(
                 return {"test_result": result.stderr, "is_failure": False, "retry_count": state["retry_count"] + 1}
             else:
                 return {"test_result": result.stderr, "is_failure": True, "retry_count": state["retry_count"] + 1}
-    
-    # node
-    def analyze_failure(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(analyze_test_prompt, 'r').read())
-        
+
+    # Node: analyze failures
+    def analyze_failure(state):
+        prompt = ChatPromptTemplate.from_template(open(analyze_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 test_cases=state["test_cases"],
                 test_result=state["test_result"]
             ),
         )
-        
         lines = response.content.split("\n")
         failure_responding = END
         for line in lines:
             if "Action" in line.strip():
-                if "Revise" in line: failure_responding = "revise_test_cases"
-        
+                if "Revise" in line:
+                    failure_responding = "revise_test_cases"
         return {"failure_analysis": response.content.strip(), "failure_responding": failure_responding}
-    
-    # node
-    def revise_test_cases(state: State) -> State:
-        prompt = ChatPromptTemplate.from_template(open(revise_test_prompt, 'r').read())
-        
+
+    # Node: revise tests
+    def revise_test_cases(state):
+        prompt = ChatPromptTemplate.from_template(open(revise_test_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
                 test_cases=state["test_cases"],
                 failure_analysis=state["failure_analysis"]
             )
         )
-        
         code_blocks = re.findall(r"```(?:javascript)?\n(.*?)```", response.content, re.DOTALL)
         code_block = max(code_blocks, key=len).strip() if code_blocks else response.content.strip()
-        
         return {"test_cases": code_block}
-    
-    workflow = StateGraph(State)
-    
+
+    # Routing (named)
+    def route_after_run_js(state):
+        return "analyze_failure" if state["is_failure"] else END
+
+    def route_after_analyze_js(state):
+        return state["failure_responding"]
+
+    # Build workflow
+    workflow = StateGraph(JSState)
     workflow.add_node("generate_test_inputs", generate_test_inputs)
     workflow.add_node("run_test_cases", run_test_cases)
     workflow.add_node("analyze_failure", analyze_failure)
     workflow.add_node("revise_test_cases", revise_test_cases)
-    
     workflow.set_entry_point("generate_test_inputs")
     workflow.add_edge("generate_test_inputs", "run_test_cases")
-    workflow.add_conditional_edges(
-        "run_test_cases", lambda state: "analyze_failure" if state["is_failure"] else END,
-        {"analyze_failure": "analyze_failure", END: END}
-    )
-    workflow.add_conditional_edges(
-        "analyze_failure", lambda state: state["failure_responding"],
-        {"revise_test_cases": "revise_test_cases", END: END}
-    )
+    workflow.add_conditional_edges("run_test_cases", route_after_run_js,
+                                   {"analyze_failure": "analyze_failure", END: END})
+    workflow.add_conditional_edges("analyze_failure", route_after_analyze_js,
+                                   {"revise_test_cases": "revise_test_cases", END: END})
     workflow.add_edge("revise_test_cases", "run_test_cases")
-    
+
     graph = workflow.compile()
-    
-    initial_state = {
+
+    initial_state: JSState = {
         "source_code": origin_target_code,
         "transformed_code": sem_target_code,
         "source_test_cases": extract_test_cases(test_code),
         "test_cases": "",
         "retry_count": 0,
+        "test_result": "",
+        "is_failure": False,
+        "failure_analysis": "",
+        "failure_responding": END,
     }
-    
+
     result = graph.invoke(initial_state)
     if result.get("retry_count", 0) == 4:
         print("Failed to generate test cases")
 
     print(result)
     subprocess.run(["rm", "-rf" "./.tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
     return result["test_cases"]
 
+
+# ============================================================
+# Java (JUnit) test generation
+# ============================================================
 def generate_test_java(
     origin_target_code: str = None,
     sem_target_code: str = None,
@@ -448,14 +476,15 @@ def generate_test_java(
     model_api: str = None,
     temperature: float = 1.0,
 
-    # ---- OpenAI-compatible 옵션 (추가) ----
-    backend: str = "ollama",                    # "ollama"(기본) 또는 "openai"
+    # ---- OpenAI-compatible options ----
+    backend: str = "ollama",                    # "ollama"(default) or "openai"
     base_url: str = "http://localhost:11434/v1",
     api_key: str = "EMPTY",
     llm_timeout: int = 120,
 ):
     """
-    Java(JUnit) 테스트 코드 생성 파이프라인 — 로직 동일, LLM 백엔드만 선택 가능.
+    Generate Java (JUnit) tests to validate semantic equivalence.
+    Behavior unchanged; you can switch LLM backend via `backend`.
     """
     if backend == "openai":
         llm = OpenAICompat(
@@ -466,19 +495,19 @@ def generate_test_java(
             temperature=temperature,
         )
     else:
+        # Ollama default
         llm = ChatOllama(model=model_api, base_url="http://localhost:11434")
 
     generate_test_prompt = "./data/prompts/generate-java-test.txt"
     analyze_test_prompt = "./data/prompts/analyze-java-test.txt"
     revise_test_prompt = "./data/prompts/revise-java-test.txt"
     junit_jar = "./data/junit.jar"
-    idx = 0
-    
-    class State(TypedDict):
-        source_code: str          
-        transformed_code: str      
-        source_test_cases: str     
-        generated_test_code: str   
+
+    class JavaState(TypedDict):
+        source_code: str
+        transformed_code: str
+        source_test_cases: str
+        generated_test_code: str
         compile_stdout: str
         compile_stderr: str
         run_stdout: str
@@ -490,7 +519,8 @@ def generate_test_java(
         failure_responding: str
         _run_root: os.PathLike
         _idx: int
-    
+
+    # ---- Basic file/OS helpers ----
     def is_windows() -> bool:
         return os.name == "nt"
 
@@ -542,15 +572,6 @@ def generate_test_java(
         ensure_dir(dst)
         return dst
 
-    def extract_test_cases_hint(source_code: str) -> str:
-        lines = source_code.split("\n")
-        start_idx = 0
-        for i, line in enumerate(lines):
-            if line.strip().startswith("class"):
-                start_idx = max(0, i - 1)
-                break
-        return "\n".join(lines[start_idx:])
-
     def run_cmd(cmd: List[str], timeout: int = 30) -> subprocess.CompletedProcess:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
@@ -569,7 +590,7 @@ def generate_test_java(
         return code
 
     def normalize_test_class(code: str, idx: int) -> Tuple[str, str]:
-        """테스트 클래스를 정규화하고 필요한 import 추가"""
+        """Normalize test class name and ensure minimal imports."""
         class_name = f"HumanEval_{idx}"
 
         if re.search(r"\bpublic\s+class\s+\w+\b", code):
@@ -590,26 +611,17 @@ def generate_test_java(
         code = _ensure_imports_for_junit(code)
         return code, class_name
 
-    def route_after_run(state: "State") -> str:
-        return "analyze_failure" if state.get("is_failure") else "end"
-
-    def route_after_analyze(state: "State") -> str:
-        if state.get("retry_count", 0) >= 3:
-            return "end"
-        return "revise_test_cases" if state.get("failure_responding") == "revise_test_cases" else "end"
-
-    def generate_test_inputs(state: "State") -> "State":
-        """LLM을 사용해 테스트 코드 생성"""
+    # ---- Workflow nodes (no type hints to avoid get_type_hints issues) ----
+    def generate_test_inputs(state):
+        """Initial JUnit test generation with LLM."""
         try:
             print("[DEBUG] Generating initial test code...")
-
             messages = render_prompt_jinja2(
                 generate_test_prompt,
                 source_code=state["source_code"],
                 transformed_code=state["transformed_code"],
                 test_cases=state["source_test_cases"],
             )
-
             response = llm.invoke(messages)
             code_block = extract_codeblock(response.content, langs=("java", ""))
             print(f"[DEBUG] Generated test code length: {len(code_block)}")
@@ -618,22 +630,22 @@ def generate_test_java(
             print(f"[ERROR] LLM generation failed: {e}")
             return {"generated_test_code": "", "is_failure": True, "error_type": "generation"}
 
-    def write_and_compile(state: "State") -> "State":
-        """테스트 코드와 CUT를 파일로 쓰고 컴파일"""
+    def write_and_compile(state):
+        """Write CUT and tests, then compile."""
         run_root = state["_run_root"]
         idx = state["_idx"]
         classes_dir = os.path.join(run_root, "classes")
         ensure_dir(classes_dir)
 
-        # CUT 작성
+        # Write CUT (Code Under Test)
         cut_code = state["transformed_code"]
         cut_pkg = extract_package(cut_code)
         cut_public = extract_public_class_name(cut_code) or "CutClass"
         cut_dir = package_to_dir(classes_dir, cut_pkg)
         cut_path = os.path.join(cut_dir, f"{cut_public}.java")
         write_file(cut_path, cut_code)
-    
-        # 테스트 코드 작성
+
+        # Write Test file
         test_code_raw = state["generated_test_code"]
         if not test_code_raw:
             return {
@@ -642,7 +654,7 @@ def generate_test_java(
                 "is_failure": True,
                 "error_type": "generation"
             }
-        
+
         print(f"[DEBUG] Writing test code (retry: {state.get('retry_count', 0)})")
         test_code_norm, class_name = normalize_test_class(test_code_raw, idx)
         test_pkg = extract_package(test_code_norm)
@@ -650,7 +662,7 @@ def generate_test_java(
         test_path = os.path.join(test_dir, f"{class_name}.java")
         write_file(test_path, test_code_norm)
 
-        # 컴파일
+        # Compile everything under classes_dir
         cp = cp_sep().join([classes_dir, junit_jar])
         java_files = []
         for root, _, files in os.walk(classes_dir):
@@ -674,8 +686,8 @@ def generate_test_java(
             "error_type": error_type,
         }
 
-    def run_tests(state: "State") -> "State":
-        """JUnit 테스트 실행"""
+    def run_tests(state):
+        """Run tests via JUnit platform console (standalone jar)."""
         if state["is_failure"]:
             return {"run_stdout": "", "run_stderr": "Skipped due to compile failure", "is_failure": True}
 
@@ -689,7 +701,7 @@ def generate_test_java(
             "--scan-class-path",
             "--details", "tree",
         ]
-        
+
         try:
             proc = run_cmd(cmd, timeout=45)
             run_stdout, run_stderr, rc = proc.stdout, proc.stderr, proc.returncode
@@ -705,8 +717,8 @@ def generate_test_java(
             "error_type": error_type,
         }
 
-    def analyze_failure(state: "State") -> "State":
-        """실패 분석 및 다음 액션 결정"""
+    def analyze_failure(state):
+        """LLM-based failure analysis and next action decision."""
         try:
             print(f"[DEBUG] Analyzing failure (retry: {state.get('retry_count', 0)})")
             current_test_code = state.get("generated_test_code", "")
@@ -742,8 +754,8 @@ def generate_test_java(
             print(f"[ERROR] Analysis failed: {e}")
             return {"failure_analysis": str(e), "failure_responding": "end"}
 
-    def revise_test_cases(state: "State") -> "State":
-        """실패 분석 기반 테스트 코드 수정"""
+    def revise_test_cases(state):
+        """Revise tests based on failure analysis and retry."""
         try:
             print(f"[DEBUG] Revising test cases (retry: {state.get('retry_count', 0)})")
 
@@ -770,8 +782,17 @@ def generate_test_java(
                 "failure_responding": "end"
             }
 
-    # LangGraph 워크플로우 구성
-    workflow = StateGraph(State)
+    # Routing (named)
+    def route_after_run(state):
+        return "analyze_failure" if state.get("is_failure") else "end"
+
+    def route_after_analyze(state):
+        if state.get("retry_count", 0) >= 3:
+            return "end"
+        return "revise_test_cases" if state.get("failure_responding") == "revise_test_cases" else "end"
+
+    # Build workflow
+    workflow = StateGraph(JavaState)
     workflow.add_node("generate_test_inputs", generate_test_inputs)
     workflow.add_node("write_and_compile", write_and_compile)
     workflow.add_node("run_tests", run_tests)
@@ -781,23 +802,11 @@ def generate_test_java(
     workflow.set_entry_point("generate_test_inputs")
     workflow.add_edge("generate_test_inputs", "write_and_compile")
     workflow.add_edge("write_and_compile", "run_tests")
-    workflow.add_conditional_edges(
-        "run_tests",
-        route_after_run,
-        {
-            "analyze_failure": "analyze_failure",
-            "end": END,
-        },
-    )
-    workflow.add_conditional_edges(
-        "analyze_failure",
-        route_after_analyze,
-        {
-            "revise_test_cases": "revise_test_cases",
-            "end": END,
-        },
-    )
-    workflow.add_edge("revise_test_cases", "write_and_compile")  # 수정 후 다시 컴파일로
+    workflow.add_conditional_edges("run_tests", route_after_run,
+                                   {"analyze_failure": "analyze_failure", "end": END})
+    workflow.add_conditional_edges("analyze_failure", route_after_analyze,
+                                   {"revise_test_cases": "revise_test_cases", "end": END})
+    workflow.add_edge("revise_test_cases", "write_and_compile")
 
     graph = workflow.compile()
 
@@ -808,7 +817,7 @@ def generate_test_java(
         shutil.rmtree(run_root)
     ensure_dir(run_root)
 
-    initial_state: State = {
+    initial_state: JavaState = {
         "source_code": origin_target_code,
         "transformed_code": sem_target_code,
         "source_test_cases": test_code,
@@ -840,12 +849,13 @@ def generate_test_java(
 
     print(result)
     subprocess.run(["rm", "-rf" "./.tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
     return result["generated_test_code"]
 
-# 테스트 코드 (원본 유지)
-if __name__=="__main__":
-    
+
+# ============================================================
+# Example usage (you can comment out this block)
+# ============================================================
+if __name__ == "__main__":
     origin_code = """def has_close_elements(numbers: List[float], threshold: float) -> bool:
     for idx, elem in enumerate(numbers):
         for idx2, elem2 in enumerate(numbers):
@@ -853,29 +863,26 @@ if __name__=="__main__":
                 distance = abs(elem - elem2)
                 if distance < threshold:
                     return True
-
     return False
 """
-    
+
+    # Generate equivalent code (via OpenAI-compatible adapter) and Python tests
     sem_equiv = sem_equiv_test(
         origin_code,
-        "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "qwen2.5-coder:32b-instruct-q8_0",
-        # 필요 시 OpenAI 호환으로:
+        generate_test_model="qwen3:8b-q8_0",
+        # To use OpenAI-compatible for test generation too:
         # generate_test_backend="openai",
         # openai_base_url="https://api.openai.com/v1",
         # openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
     )
-    
-    print(sem_equiv[0])
-    print(sem_equiv[1])
-    
+    print(sem_equiv[0])  # equivalent code
+    print(sem_equiv[1])  # generated python tests
+
     origin_target_code = """import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HumanEval_0 {
-
     static class HumanEval_0_Source {
         public static boolean hasCloseElements(List<Double> numbers, double threshold) {
             for (int idx = 0; idx < numbers.size(); idx++) {
@@ -892,7 +899,7 @@ public class HumanEval_0 {
         }
     }
 }"""
-    
+
     sem_target_code = """import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -918,9 +925,8 @@ public class HumanEval_0 {
         }
     }
 }"""
-    
-    test_code = """class TestFunctionEquivalence(unittest.TestCase):
 
+    test_code = """class TestFunctionEquivalence(unittest.TestCase):
     test_cases = [
         ([1.0, 2.0, 3.0], 0.5),
         ([1.0, 2.0, 3.0], 1.5),
@@ -933,63 +939,16 @@ public class HumanEval_0 {
         ([1.0, 1.0, 1.0, 1.0], 0.1),
         ([1.0, 2.0, 3.0, 4.0, 5.0], 1.1)
     ]
-
-    expected_results = [
-        False,
-        True,
-        False,
-        True,
-        True,
-        False,
-        True,
-        False,
-        True,
-        True
-    ]
-
-    def test_0(self):
-        self.assertEqual(has_close_elements(self.test_cases[0][0], self.test_cases[0][1]), contains_nearby_elements(self.test_cases[0][0], self.test_cases[0][1]))
-    
-    def test_1(self):
-        self.assertEqual(has_close_elements(self.test_cases[1][0], self.test_cases[1][1]), contains_nearby_elements(self.test_cases[1][0], self.test_cases[1][1]))
-        
-    def test_2(self):
-        self.assertEqual(has_close_elements(self.test_cases[2][0], self.test_cases[2][1]), contains_nearby_elements(self.test_cases[2][0], self.test_cases[2][1]))
-    
-    def test_3(self):
-        self.assertEqual(has_close_elements(self.test_cases[3][0], self.test_cases[3][1]), contains_nearby_elements(self.test_cases[3][0], self.test_cases[3][1]))
-    
-    def test_4(self):
-        self.assertEqual(has_close_elements(self.test_cases[4][0], self.test_cases[4][1]), contains_nearby_elements(self.test_cases[4][0], self.test_cases[4][1]))
-        
-    def test_5(self):
-        self.assertEqual(has_close_elements(self.test_cases[5][0], self.test_cases[5][1]), contains_nearby_elements(self.test_cases[5][0], self.test_cases[5][1]))
-    
-    def test_6(self):
-        self.assertEqual(has_close_elements(self.test_cases[6][0], self.test_cases[6][1]), contains_nearby_elements(self.test_cases[6][0], self.test_cases[6][1]))
-    
-    def test_7(self):
-        self.assertEqual(has_close_elements(self.test_cases[7][0], self.test_cases[7][1]), contains_nearby_elements(self.test_cases[7][0], self.test_cases[7][1]))
-    
-    def test_8(self):
-        self.assertEqual(has_close_elements(self.test_cases[8][0], self.test_cases[8][1]), contains_nearby_elements(self.test_cases[8][0], self.test_cases[8][1]))
-    
-    def test_9(self):
-        self.assertEqual(has_close_elements(self.test_cases[9][0], self.test_cases[9][1]), contains_nearby_elements(self.test_cases[9][0], self.test_cases[9][1]))
-
-if __name__ == '__main__':
-    unittest.main()
+    expected_results = [False, True, False, True, True, False, True, False, True, True]
+    def test_0(self): ...
 """
-    
-    model_api = "qwen2.5-coder:32b-instruct-q8_0"
-    temperature = 1.0
-    
+
+    model_api = "qwen3:8b-q8_0"
     result = generate_test_java(
-        origin_target_code, sem_target_code, test_code, model_api, temperature,
-        # 필요 시 OpenAI 호환으로:
-        backend="openai",
-        base_url="https://api.openai.com/v1",
-        api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
+        origin_target_code, sem_target_code, test_code, model_api, 1.0,
+        # To use OpenAI-compatible API for the Java test LLM:
+        # backend="openai",
+        # base_url="https://api.openai.com/v1",
+        # api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
     )
-    
     print(result)

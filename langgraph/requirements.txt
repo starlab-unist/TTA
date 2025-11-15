@@ -10,4 +10,5 @@ langgraph
 langchain-community
 langchain-ollama
 langchain-core
+langchain-teddynote
 pydantic

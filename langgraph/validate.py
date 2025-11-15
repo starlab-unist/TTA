@@ -23,14 +23,14 @@ from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI  # ← OpenAI compatible 추가
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
 
 # =========================
 # Defaults
 # =========================
-MODEL_NAME = "qwen2.5-coder:32b-instruct-q8_0"   # 기본 Ollama 모델명
+MODEL_NAME = "qwen3:8b-q8_0"   # 기본 Ollama 모델명
 PY_TIMEOUT = 15
 JS_TIMEOUT = 20
 JAVA_TIMEOUT = 45

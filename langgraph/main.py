@@ -10,11 +10,15 @@
 
 import os
 import re
+import glob
 import json
 import shutil
 import subprocess
+from tqdm import tqdm
 from types import SimpleNamespace
 from typing import Dict, Any, List, Tuple, Optional, TypedDict
+
+from argparse import ArgumentParser
 
 # (Optional) Local HF inference was removed to avoid logic changes.
 # If you want to use HF again, re-enable these:
@@ -113,13 +117,16 @@ def sem_equiv_test(
     examples = json.load(open("./data/prompts/examples.json", 'r', encoding="utf-8"))["Python"]
 
     # (1) Equivalent code generation using OpenAI-compatible backend
-    llm_equiv = OpenAICompat(
-        model=generate_test_model,
-        base_url=openai_base_url,
-        api_key=openai_api_key,
-        timeout=llm_timeout,
-        temperature=temperature,
-    )
+    if generate_test_backend == "openai":
+        llm_equiv = OpenAICompat(
+            model=generate_test_model,
+            base_url=openai_base_url,
+            api_key=openai_api_key,
+            timeout=llm_timeout,
+            temperature=temperature,
+        )
+    else:
+        llm_equiv = ChatOllama(model=generate_test_model, base_url="http://localhost:11434")
 
     messages = [
         SystemMessage(content=system),
@@ -481,6 +488,8 @@ def generate_test_java(
     base_url: str = "http://localhost:11434/v1",
     api_key: str = "EMPTY",
     llm_timeout: int = 120,
+
+    output_folder: str = "./.tmp"
 ):
     """
     Generate Java (JUnit) tests to validate semantic equivalence.
@@ -812,7 +821,8 @@ def generate_test_java(
 
     logging.langsmith("VTW Project(JAVA)")
 
-    run_root = os.path.join("./.tmp")
+    # run_root = os.path.join("./.tmp")
+    run_root = os.path.join(output_folder)
     if os.path.exists(run_root):
         shutil.rmtree(run_root)
     ensure_dir(run_root)
@@ -832,7 +842,7 @@ def generate_test_java(
         "failure_analysis": "",
         "failure_responding": "end",
         "_run_root": run_root,
-        "_idx": 0,
+        "_idx": int(run_root.split("/")[-1]),
     }
 
     result: Dict[str, Any] = graph.invoke(initial_state)
@@ -848,7 +858,7 @@ def generate_test_java(
         print("Failed to generate test cases")
 
     print(result)
-    subprocess.run(["rm", "-rf" "./.tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # subprocess.run(["rm", "-rf" "./.tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return result["generated_test_code"]
 
 
@@ -856,99 +866,239 @@ def generate_test_java(
 # Example usage (you can comment out this block)
 # ============================================================
 if __name__ == "__main__":
-    origin_code = """def has_close_elements(numbers: List[float], threshold: float) -> bool:
-    for idx, elem in enumerate(numbers):
-        for idx2, elem2 in enumerate(numbers):
-            if idx != idx2:
-                distance = abs(elem - elem2)
-                if distance < threshold:
-                    return True
-    return False
-"""
 
-    # Generate equivalent code (via OpenAI-compatible adapter) and Python tests
-    sem_equiv = sem_equiv_test(
-        origin_code,
-        generate_test_model="qwen3:8b-q8_0",
-        # To use OpenAI-compatible for test generation too:
-        # generate_test_backend="openai",
-        # openai_base_url="https://api.openai.com/v1",
-        # openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
-    )
-    print(sem_equiv[0])  # equivalent code
-    print(sem_equiv[1])  # generated python tests
+    parser = ArgumentParser()
 
-    origin_target_code = """import java.util.List;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+    parser.add_argument("-m", "--mode", type=str, choices=["generate-source-test", "generate-target-test"], default="generate-source-test")
 
-public class HumanEval_0 {
-    static class HumanEval_0_Source {
-        public static boolean hasCloseElements(List<Double> numbers, double threshold) {
-            for (int idx = 0; idx < numbers.size(); idx++) {
-                for (int idx2 = 0; idx2 < numbers.size(); idx2++) {
-                    if (idx != idx2) {
-                        double distance = Math.abs(numbers.get(idx) - numbers.get(idx2));
-                        if (distance < threshold) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
+    # for generate-source-test
+    parser.add_argument("-s", "--sources", type=str, default="./data/humaneval-python.jsonl")
+
+    parser.add_argument("-seo", "--source_equiv_outputs", type=str, default="")
+    parser.add_argument("-sto", "--source_test_outputs", type=str, default="")
+
+    # for generate-target-test
+    parser.add_argument("-t", "--targets", type=str, default="./result/32b-py2js")
+    parser.add_argument("-et", "--equiv_targets", type=str, default="./result/32b-eq2js")
+    parser.add_argument("-stc", "--source_test_cases", type=str, default="./data/test-py")
+    parser.add_argument("-l", "--target_language", type=str, choices=["javascript", "java"], default="javascript")
+
+    parser.add_argument("-tto", "--target_test_outputs", type=str, default="")
+
+    # llm setting
+    parser.add_argument("--llm_backend", type=str, choices=["openai", "ollama"], default="ollama")
+    parser.add_argument("--llm_api", type=str, default="qwen3:8b-q8_0")
+
+    args = parser.parse_args()
+
+    extention = {
+        "python": "py",
+        "javascript": "js",
+        "java": "java"
     }
-}"""
 
-    sem_target_code = """import java.util.List;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+    def extract_file_number(path):
+        filename = path.split("/")[-1]
+        if filename.endswith(".java"):
+            return int(filename.split(".")[0].split("_")[-1])
+        else:
+            return int(filename.split(".")[0])
 
-public class HumanEval_0 {
-    static class HumanEval_0_Transformed {
-        public boolean containsNearbyElements(List<Double> values, double limit) {
-            int index = 0;
-            while (index < values.size()) {
-                int innerIndex = 0;
-                while (innerIndex < values.size()) {
-                    if (index != innerIndex) {
-                        double gap = Math.abs(values.get(index) - values.get(innerIndex));
-                        if (gap < limit) {
-                            return true;
-                        }
-                    }
-                    innerIndex++;
-                }
-                index++;
-            }
-            return false;
-        }
-    }
-}"""
+    def get_files(input_source, language):
 
-    test_code = """class TestFunctionEquivalence(unittest.TestCase):
-    test_cases = [
-        ([1.0, 2.0, 3.0], 0.5),
-        ([1.0, 2.0, 3.0], 1.5),
-        ([1.1, 2.2, 3.3], 0.1),
-        ([1.1, 2.2, 3.3], 1.2),
-        ([0.0, 0.0, 0.0], 0.0),
-        ([0.0, 0.1, 0.2], 0.05),
-        ([5.0, 4.9, 4.8], 0.2),
-        ([10.0, 20.0, 30.0], 5.0),
-        ([1.0, 1.0, 1.0, 1.0], 0.1),
-        ([1.0, 2.0, 3.0, 4.0, 5.0], 1.1)
-    ]
-    expected_results = [False, True, False, True, True, False, True, False, True, True]
-    def test_0(self): ...
-"""
+        if os.path.isdir(input_source):
+            # 폴더
+            input_dir = input_source
+            if input_dir.endswith("/"):
+                input_dir = input_dir[:-1]
+            
+            ext = extention[language.lower()]
 
-    model_api = "qwen3:8b-q8_0"
-    result = generate_test_java(
-        origin_target_code, sem_target_code, test_code, model_api, 1.0,
-        # To use OpenAI-compatible API for the Java test LLM:
-        # backend="openai",
-        # base_url="https://api.openai.com/v1",
-        # api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
-    )
-    print(result)
+            files = sorted(glob.glob(f"{input_dir}/*.{ext}"), key=extract_file_number)
+            sources = [open(file, 'r').read() for file in files]
+
+        elif input_source.endswith(".jsonl"):
+            # JSONL 파일
+            lines = open(input_source, 'r').readlines()
+            sources = [json.loads(line) for line in lines]
+
+            sources = [source["declaration"] + source["canonical_solution"] for source in sources]
+        
+        else:
+            # 단일 파일
+            sources = [open(input_source, 'r').read()]
+        
+        return sources
+
+    if args.mode == "generate-source-test":
+
+        sources = get_files(args.sources, language="python")
+
+        assert args.source_equiv_outputs != "", "Set the folder in which to output semantically equivalent files (-seo, --source_equiv_outputs)."
+        os.makedirs(args.source_equiv_outputs, exist_ok=True)
+
+        if args.source_equiv_outputs.endswith("/"): equiv_outputs = args.source_equiv_outputs[:-1]
+        else: equiv_outputs = args.source_equiv_outputs
+
+        assert args.source_test_outputs != "", "Set the folder in which to output test cases (-sto, --source_test_outputs)"
+        os.makedirs(args.source_test_outputs, exist_ok=True)
+
+        if args.source_test_outputs.endswith("/"): test_outputs = args.source_test_outputs[:-1]
+        else: test_outputs = args.source_test_outputs
+
+        for idx, source in enumerate(tqdm(sources)):
+            
+            equiv, test_case = sem_equiv_test(
+                source,
+                generate_test_model=args.llm_api,
+                generate_test_backend=args.llm_backend,
+                openai_base_url="https://api.openai.com/v1",
+                openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY")
+            )
+
+            with open(f"{equiv_outputs}/{idx}.py", 'w') as f:
+                f.write(equiv)
+            
+            with open(f"{test_outputs}/{idx}.py", 'w') as f:
+                f.write(test_case)
+
+    elif args.mode == "generate-target-test":
+
+        targets = get_files(args.targets, language=args.target_language)
+        equiv_targets = get_files(args.equiv_targets, language=args.target_language)
+        test_cases = get_files(args.source_test_cases, language="python")
+
+        assert len(targets) == len(equiv_targets) == len(test_cases), "The number of translations and semantically equivalent of translations and test cases is different!"
+
+        assert args.target_test_outputs != "", "Set the folder in which to output test cases (-tto, --target_test_outputs)"
+        os.makedirs(args.target_test_outputs, exist_ok=True)
+
+        if args.target_test_outputs.endswith("/"): test_outputs = args.target_test_outputs[:-1]
+        else: test_outputs = args.target_test_outputs
+
+        base_url = "https://localhost:11434/v1" if args.llm_backend == "ollama" else "https://api.openapi.com/v1"
+
+        for idx, (target, equiv_target, test_case) in enumerate(tqdm(zip(targets, equiv_targets, test_cases))):
+
+            if args.target_language == "javascript":
+
+                result = generate_test_js(
+                    target, equiv_target, test_case,
+                    model_api=args.llm_api,
+                    backend=args.llm_backend,
+                    base_url=base_url,
+                    api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
+                )
+
+                with open(f"{test_outputs}/{idx}.test.js", 'w') as f:
+                    f.write(result)
+            
+            elif args.target_language == "java":
+
+                result = generate_test_java(
+                    target, equiv_target, test_case,
+                    model_api=args.llm_api,
+                    backend=args.llm_backend,
+                    base_url=base_url,
+                    api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
+                    output_folder = f"{test_outputs}/{idx}"
+                )
+
+    print("Done!")
+
+#     origin_code = """def has_close_elements(numbers: List[float], threshold: float) -> bool:
+#     for idx, elem in enumerate(numbers):
+#         for idx2, elem2 in enumerate(numbers):
+#             if idx != idx2:
+#                 distance = abs(elem - elem2)
+#                 if distance < threshold:
+#                     return True
+#     return False
+# """
+
+#     # Generate equivalent code (via OpenAI-compatible adapter) and Python tests
+#     sem_equiv = sem_equiv_test(
+#         origin_code,
+#         generate_test_model="qwen3:8b-q8_0",
+#         # To use OpenAI-compatible for test generation too:
+#         # generate_test_backend="openai",
+#         # openai_base_url="https://api.openai.com/v1",
+#         # openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
+#     )
+#     print(sem_equiv[0])  # equivalent code
+#     print(sem_equiv[1])  # generated python tests
+
+#     origin_target_code = """import java.util.List;
+# import org.junit.jupiter.api.Test;
+# import static org.junit.jupiter.api.Assertions.assertEquals;
+
+# public class HumanEval_0 {
+#     static class HumanEval_0_Source {
+#         public static boolean hasCloseElements(List<Double> numbers, double threshold) {
+#             for (int idx = 0; idx < numbers.size(); idx++) {
+#                 for (int idx2 = 0; idx2 < numbers.size(); idx2++) {
+#                     if (idx != idx2) {
+#                         double distance = Math.abs(numbers.get(idx) - numbers.get(idx2));
+#                         if (distance < threshold) {
+#                             return true;
+#                         }
+#                     }
+#                 }
+#             }
+#             return false;
+#         }
+#     }
+# }"""
+
+#     sem_target_code = """import java.util.List;
+# import org.junit.jupiter.api.Test;
+# import static org.junit.jupiter.api.Assertions.assertEquals;
+
+# public class HumanEval_0 {
+#     static class HumanEval_0_Transformed {
+#         public boolean containsNearbyElements(List<Double> values, double limit) {
+#             int index = 0;
+#             while (index < values.size()) {
+#                 int innerIndex = 0;
+#                 while (innerIndex < values.size()) {
+#                     if (index != innerIndex) {
+#                         double gap = Math.abs(values.get(index) - values.get(innerIndex));
+#                         if (gap < limit) {
+#                             return true;
+#                         }
+#                     }
+#                     innerIndex++;
+#                 }
+#                 index++;
+#             }
+#             return false;
+#         }
+#     }
+# }"""
+
+#     test_code = """class TestFunctionEquivalence(unittest.TestCase):
+#     test_cases = [
+#         ([1.0, 2.0, 3.0], 0.5),
+#         ([1.0, 2.0, 3.0], 1.5),
+#         ([1.1, 2.2, 3.3], 0.1),
+#         ([1.1, 2.2, 3.3], 1.2),
+#         ([0.0, 0.0, 0.0], 0.0),
+#         ([0.0, 0.1, 0.2], 0.05),
+#         ([5.0, 4.9, 4.8], 0.2),
+#         ([10.0, 20.0, 30.0], 5.0),
+#         ([1.0, 1.0, 1.0, 1.0], 0.1),
+#         ([1.0, 2.0, 3.0, 4.0, 5.0], 1.1)
+#     ]
+#     expected_results = [False, True, False, True, True, False, True, False, True, True]
+#     def test_0(self): ...
+# """
+
+#     model_api = "qwen3:8b-q8_0"
+#     result = generate_test_java(
+#         origin_target_code, sem_target_code, test_code, model_api, 1.0,
+#         # To use OpenAI-compatible API for the Java test LLM:
+#         # backend="openai",
+#         # base_url="https://api.openai.com/v1",
+#         # api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
+#     )
+#     print(result)

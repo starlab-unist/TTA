@@ -12,3 +12,4 @@ langchain-ollama
 langchain-core
 langchain-teddynote
 pydantic
+vllm

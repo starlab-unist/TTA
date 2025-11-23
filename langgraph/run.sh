@@ -1,84 +1,95 @@
-echo "RUNNING TO GENERATE THE SEMANTIC EQUIVALENT CODE..."
-python generate_equiv.py \
-    -s ./data/equiv
 
-echo "RUNNING TO GENERATE THE PYTHON TEST CASES..."
-python generate_test.py \
-    -td ./data/equiv \
-    -od ./data/test-py
+start_time=$(date +%s)
 
-echo "TRANSLATING THE SOURCE PYTHON CODE WITH QWEN-32B MODEL..."
-python translate.py \
-    -i ./data/humaneval-python.jsonl \
-    -o ./result/qwen/32b-py2js \
-    -m Qwen/Qwen2.5-Coder-32B-Instruct
+# echo "RUNNING TO GENERATE THE SEMANTIC EQUIVALENT CODE AND PYTHON TEST CASES..."
 
-echo "TRANSLATING THE SEMANTIC EQUIVALENT CODE WITH QWEN-32B MODEL..."
-python translate.py \
-    -i ./data/equiv \
-    -o ./result/qwen/32b-eq2js \
-    -m Qwen/Qwen2.5-Coder-32B-Instruct
+# rm -rf outputs
+# mkdir outputs
 
-echo "ANALYZING THE TRANSLATED CODES BY QWEN-32B MODEL..."
-python generate_test_js.py \
-    -sd ./result/qwen/32b-py2js \
-    -td ./result/qwen/32b-eq2js \
-    -tcd ./data/test-py \
-    -od ./result/qwen/32b-test-js
+# python main.py \
+#     --mode generate-source-test \
+#     --sources ./data/humaneval-python-10.jsonl \
+#     --source_equiv_outputs ./outputs/equiv \
+#     --source_test_outputs ./outputs/test-py \
+#     --llm_api qwen3:30b
 
-echo "TRANSLATING THE SOURCE PYTHON CODE WITH QWEN-14B MODEL..."
-python translate.py \
-    -i ./data/humaneval-python.jsonl \
-    -o ./result/qwen/14b-py2js \
-    -m Qwen/Qwen2.5-Coder-14B-Instruct
+# echo "RUNNING TO GENERATE THE JAVASCRIPT TEST CASES..."
 
-echo "TRANSLATING THE SEMANTIC EQUIVALENT CODE WITH QWEN-14B MODEL..."
-python translate.py \
-    -i ./data/equiv \
-    -o ./result/qwen/14b-eq2js \
-    -m Qwen/Qwen2.5-Coder-14B-Instruct
+# python main.py \
+#     --mode generate-target-test \
+#     --targets ./result/qwen/32b-py2js-10 \
+#     --equiv_targets ./result/qwen/32b-eq2js-10 \
+#     --source_test_cases ./outputs/test-py \
+#     --target_language javascript \
+#     --target_test_outputs ./outputs/test-js \
+#     --llm_api qwen3:30b
 
-echo "ANALYZING THE TRANSLATED CODES BY QWEN-14B MODEL..."
-python generate_test_js.py \
-    -sd ./result/qwen/14b-py2js \
-    -td ./result/qwen/14b-eq2js \
-    -tcd ./data/test-py \
-    -od ./result/qwen/14b-test-js
+echo "VALIDATING THE GENERATED TEST CASES..."
 
-echo "TRANSLATING THE SOURCE PYTHON CODE WITH QWEN-7B MODEL..."
-python translate.py \
-    -i ./data/humaneval-python.jsonl \
-    -o ./result/qwen/7b-py2js \
-    -m Qwen/Qwen2.5-Coder-7B-Instruct
+echo "VALIDATING THE GENERATED TEST CASES...0"
+python validate.py \
+    ./outputs/test-py/0.py \
+    ./outputs/test-js/0.test.js \
+    js
 
-echo "TRANSLATING THE SEMANTIC EQUIVALENT CODE WITH QWEN-7B MODEL..."
-python translate.py \
-    -i ./data/equiv \
-    -o ./result/qwen/7b-eq2js \
-    -m Qwen/Qwen2.5-Coder-7B-Instruct
+echo "VALIDATING THE GENERATED TEST CASES...1"
+python validate.py \
+    ./outputs/test-py/1.py \
+    ./outputs/test-js/1.test.js \
+    js \
+    --model qwen3:30b
 
-echo "ANALYZING THE TRANSLATED CODES BY QWEN-7B MODEL..."
-python generate_test_js.py \
-    -sd ./result/qwen/7b-py2js \
-    -td ./result/qwen/7b-eq2js \
-    -tcd ./data/test-py \
-    -od ./result/qwen/7b-test-js
+echo "VALIDATING THE GENERATED TEST CASES...2"
+python validate.py \
+    ./outputs/test-py/2.py \
+    ./outputs/test-js/2.test.js \
+    js
 
-echo "TRANSLATING THE SOURCE PYTHON CODE WITH QWEN-3B MODEL..."
-python translate.py \
-    -i ./data/humaneval-python.jsonl \
-    -o ./result/qwen/3b-py2js \
-    -m Qwen/Qwen2.5-Coder-3B-Instruct
+echo "VALIDATING THE GENERATED TEST CASES...3"
+python validate.py \
+    ./outputs/test-py/3.py \
+    ./outputs/test-js/3.test.js \
+    js
 
-echo "TRANSLATING THE SEMANTIC EQUIVALENT CODE WITH QWEN-3B MODEL..."
-python translate.py \
-    -i ./data/equiv \
-    -o ./result/qwen/3b-eq2js \
-    -m Qwen/Qwen2.5-Coder-3B-Instruct
+echo "VALIDATING THE GENERATED TEST CASES...4"
+python validate.py \
+    ./outputs/test-py/4.py \
+    ./outputs/test-js/4.test.js \
+    js
 
-echo "ANALYZING THE TRANSLATED CODES BY QWEN-3B MODEL..."
-python generate_test_js.py \
-    -sd ./result/qwen/3b-py2js \
-    -td ./result/qwen/3b-eq2js \
-    -tcd ./data/test-py \
-    -od ./result/qwen/3b-test-js
+echo "VALIDATING THE GENERATED TEST CASES...5"
+python validate.py \
+    ./outputs/test-py/5.py \
+    ./outputs/test-js/5.test.js \
+    js
+
+echo "VALIDATING THE GENERATED TEST CASES...6"
+python validate.py \
+    ./outputs/test-py/6.py \
+    ./outputs/test-js/6.test.js \
+    js
+
+echo "VALIDATING THE GENERATED TEST CASES...7"
+python validate.py \
+    ./outputs/test-py/7.py \
+    ./outputs/test-js/7.test.js \
+    js
+
+echo "VALIDATING THE GENERATED TEST CASES...8"
+python validate.py \
+    ./outputs/test-py/8.py \
+    ./outputs/test-js/8.test.js \
+    js
+
+echo "VALIDATING THE GENERATED TEST CASES...9"
+python validate.py \
+    ./outputs/test-py/9.py \
+    ./outputs/test-js/9.test.js \
+    js
+
+end_time=$(date +%s)
+
+elapsed_sec=$((end_time - start_time))
+elapsed_min=$((elapsed_sec / 60))
+
+echo "총 걸린 시간: ${elapsed_sec}초 (${elapsed_min}분)"

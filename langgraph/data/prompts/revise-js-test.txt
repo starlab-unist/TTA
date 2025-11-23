@@ -17,4 +17,101 @@ Previous test cases:
 Failure analysis:
 {failure_analysis}
 
+Below is an example. Look carefully at the test cases and generate it out in the same format.
+```javascript
+
+// Source Code
+function mostCommonWord(text) {{
+    const words = text.toLowerCase().match(/\b\w+\b/g);
+
+    if (!words || words.length === 0) {{
+        return null;
+    }}
+
+    const counts = {{}};
+    for (const word of words) {{
+        counts[word] = (counts[word] || 0) + 1;
+    }}
+
+    let mostCommon = null;
+    let maxCount = 0;
+
+    for (const [word, count] of Object.entries(counts)) {{
+        if (count > maxCount) {{
+            maxCount = count;
+            mostCommon = word;
+        }}
+    }}
+
+    return mostCommon;
+}}
+
+// Transformed Code (Semantically Equivalent)
+function getMostFrequentWord(sentence) {{
+    const tokenList = sentence.toLowerCase().match(/\w+/g);
+
+    if (!tokenList || tokenList.length === 0) {{
+        return null;
+    }}
+
+    const frequency = {{}};
+    for (const token of tokenList) {{
+        frequency[token] = (frequency[token] || 0) + 1;
+    }}
+
+    const entries = Object.entries(frequency);
+    if (entries.length === 0) {{
+        return null;
+    }}
+
+    let mostFrequentWord = null;
+    let maxFrequency = 0;
+
+    for (const [word, count] of entries) {{
+        if (count > maxFrequency) {{
+            maxFrequency = count;
+            mostFrequentWord = word;
+        }}
+    }}
+
+    return mostFrequentWord;
+}}
+
+// Test Cases
+describe('mostCommonWord vs getMostFrequentWord equivalence tests', () => {{
+    const testCases = [
+        ["Hello hello HeLLo"],
+        ["Apple, banana. Apple! orange? apple; BANANA."],
+        ["one two one two"],
+        ["###@@!!python... python?? PYTHON--"],
+        ["123 456 123 789 123"],
+        ["abc abc 123 abc 123"],
+        ["        "],
+        [""],
+        ["OpenAI"],
+        ["a b c d e f g h i j"]
+    ];
+
+    test.each(testCases)('Input: "%s"', (inputText) => {{
+        expect(mostCommonWord(inputText)).toBe(getMostFrequentWord(inputText))
+    }});
+}});
+
+```
+
+Source code:
+```javascript
+{source_code}
+```
+
+Transformed code:
+```javascript
+{transformed_code}
+```
+
+Test inputs:
+```python
+{source_test_cases}
+```
+
 Output the revised test case code with source code and transformed code.

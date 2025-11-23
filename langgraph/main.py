@@ -227,7 +227,8 @@ def sem_equiv_test(
         prompt = ChatPromptTemplate.from_template(open(generate_equiv_prompt, 'r', encoding="utf-8").read())
         response = llm.invoke(
             prompt.format_messages(
-                source=state["source_code"]
+                source_example=examples["Source"], target_example=examples["Target"], language="python", source=state["source_code"],
+                #source=state["source_code"]
             )
         )
         code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.content, re.DOTALL)
@@ -343,9 +344,10 @@ def generate_test_js(
     analyze_test_prompt = "./data/prompts/analyze-js-test.txt"
     revise_test_prompt = "./data/prompts/revise-js-test.txt"
 
-    os.makedirs("./.tmp", exist_ok=True)
-    subprocess.run("cd ./.tmp; npm init -y", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run("cd ./.tmp; npm install --save-dev jest", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    os.makedirs("./tmp", exist_ok=True)
+    if "package.json" not in os.listdir("./tmp"):
+        subprocess.run("cd ./tmp; npm init -y", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # subprocess.run("cd ./tmp; npm install --save-dev jest", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     class JSState(TypedDict):
         source_code: str
@@ -377,10 +379,10 @@ def generate_test_js(
     # Node: run tests using Jest
     def run_test_cases(state):
         try:
-            with open("./.tmp/code.test.js", 'w', encoding="utf-8") as f:
+            with open("./tmp/code.test.js", 'w', encoding="utf-8") as f:
                 f.write(state["test_cases"])
             result = subprocess.run(
-                "cd ./.tmp; npx jest code.test.js",
+                "cd ./tmp; npx jest code.test.js",
                 shell=True,
                 text=True,
                 capture_output=True,
@@ -389,7 +391,7 @@ def generate_test_js(
         except Exception as e:
             result = subprocess.CompletedProcess(args=["npx"], returncode=1, stdout="", stderr=str(e))
 
-        subprocess.run(["rm", "./.tmp/code.test.js"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["rm", "./tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         if result.returncode == 0:
             return {"test_result": result.stdout, "is_failure": False}
@@ -422,7 +424,10 @@ def generate_test_js(
         response = llm.invoke(
             prompt.format_messages(
                 test_cases=state["test_cases"],
-                failure_analysis=state["failure_analysis"]
+                failure_analysis=state["failure_analysis"],
+                source_code=state["source_code"],
+                transformed_code=state["transformed_code"],
+                source_test_cases=state["source_test_cases"]
             )
         )
         code_blocks = re.findall(r"```(?:javascript)?\n(.*?)```", response.content, re.DOTALL)
@@ -469,7 +474,7 @@ def generate_test_js(
         print("Failed to generate test cases")
 
     print(result)
-    subprocess.run(["rm", "-rf" "./.tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["rm", "-rf" "./tmp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return result["test_cases"]
 
 

@@ -17,4 +17,83 @@ Previous test cases:
 Failure analysis:
 {failure_analysis}
 
+Below is an example. Look carefully at the test cases and generate it out in the same format.
+```python
+import re
+from collections import Counter
+
+# Source Code
+def most_common_word(text):
+    words = re.findall(r'\b\w+\b', text.lower())
+    
+    if not words:
+        return None
+    
+    counts = Counter(words)
+    return counts.most_common(1)[0][0]
+
+# Transformed Code (Semantically Equivalent)
+def get_most_frequent_word(sentence):
+    token_list = re.findall(r'\w+', sentence.lower())
+
+    if len(token_list) == 0:
+        return None
+
+    frequency = Counter(token_list)
+    most_frequent = frequency.most_common(1)
+
+    return most_frequent[0][0] if most_frequent else None
+
+import unittest
+
+# Test Cases
+class TestFunctionEquivalence(unittest.TestCase):
+
+    test_cases = [
+        "Hello hello HeLLo",
+        "Apple, banana. Apple! orange? apple; BANANA.",
+        "one two one two", "one",
+        "###@@!!python... python?? PYTHON--",
+        "123 456 123 789 123",
+        "abc abc 123 abc 123",
+        "        ",
+        "",
+        "OpenAI",
+        "a b c d e f g h i j"
+    ]
+
+    def test_0(self):
+        self.assertEqual(most_common_word(self.test_cases[0]), get_most_frequent_word(self.test_cases[0]))
+    
+    def test_1(self):
+        self.assertEqual(most_common_word(self.test_cases[1]), get_most_frequent_word(self.test_cases[1]))
+        
+    def test_2(self):
+        self.assertEqual(most_common_word(self.test_cases[2]), get_most_frequent_word(self.test_cases[2]))
+    
+    def test_3(self):
+        self.assertEqual(most_common_word(self.test_cases[3]), get_most_frequent_word(self.test_cases[3]))
+    
+    def test_4(self):
+        self.assertEqual(most_common_word(self.test_cases[4]), get_most_frequent_word(self.test_cases[4]))
+        
+    def test_5(self):
+        self.assertEqual(most_common_word(self.test_cases[5]), get_most_frequent_word(self.test_cases[5]))
+    
+    def test_6(self):
+        self.assertEqual(most_common_word(self.test_cases[6]), get_most_frequent_word(self.test_cases[6]))
+    
+    def test_7(self):
+        self.assertEqual(most_common_word(self.test_cases[7]), get_most_frequent_word(self.test_cases[7]))
+    
+    def test_8(self):
+        self.assertEqual(most_common_word(self.test_cases[8]), get_most_frequent_word(self.test_cases[8]))
+    
+    def test_9(self):
+        self.assertEqual(most_common_word(self.test_cases[9]), get_most_frequent_word(self.test_cases[9]))
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
 Output the revised test case code with source code and transformed code.

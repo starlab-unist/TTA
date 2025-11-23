@@ -230,6 +230,8 @@ def run_js_test(path: str, timeout: int = JS_TIMEOUT) -> Tuple[bool, str, str]:
     try:
         cwd = os.path.dirname(path)
         fname = os.path.basename(path)
+        if "package.json" not in os.listdir(cwd):
+            subprocess.run(["npm", "init", "-y"], cwd=cwd or None, text=True, capture_output=True)
         cp = subprocess.run(["npx", "jest", fname], cwd=cwd or None, text=True, capture_output=True, timeout=timeout)
         return cp.returncode == 0, cp.stdout, cp.stderr
     except Exception as e:

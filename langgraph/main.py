@@ -891,8 +891,9 @@ if __name__ == "__main__":
     parser.add_argument("-tto", "--target_test_outputs", type=str, default="")
 
     # llm setting
-    parser.add_argument("--llm_backend", type=str, choices=["openai", "ollama"], default="ollama")
-    parser.add_argument("--llm_api", type=str, default="qwen3:8b-q8_0")
+    parser.add_argument("--llm_backend", type=str, choices=["openai", "ollama"], default="openai")
+    parser.add_argument("--llm_api", type=str, default="Qwen/Qwen3-Coder-30B-A3B-Instruct")
+    parser.add_argument("--llm_base_url", type=str, default="http://192.168.0.2:8001/v1")
 
     args = parser.parse_args()
 
@@ -957,7 +958,8 @@ if __name__ == "__main__":
                 source,
                 generate_test_model=args.llm_api,
                 generate_test_backend=args.llm_backend,
-                openai_base_url="https://api.openai.com/v1",
+                # openai_base_url="https://api.openai.com/v1",
+                openai_base_url=args.llm_base_url,
                 openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY")
             )
 
@@ -981,7 +983,7 @@ if __name__ == "__main__":
         if args.target_test_outputs.endswith("/"): test_outputs = args.target_test_outputs[:-1]
         else: test_outputs = args.target_test_outputs
 
-        base_url = "https://localhost:11434/v1" if args.llm_backend == "ollama" else "https://api.openapi.com/v1"
+        # base_url = "https://localhost:11434/v1" if args.llm_backend == "ollama" else "https://api.openapi.com/v1"
 
         for idx, (target, equiv_target, test_case) in enumerate(tqdm(zip(targets, equiv_targets, test_cases))):
 
@@ -991,7 +993,7 @@ if __name__ == "__main__":
                     target, equiv_target, test_case,
                     model_api=args.llm_api,
                     backend=args.llm_backend,
-                    base_url=base_url,
+                    base_url=args.llm_base_url,
                     api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
                 )
 
@@ -1004,106 +1006,10 @@ if __name__ == "__main__":
                     target, equiv_target, test_case,
                     model_api=args.llm_api,
                     backend=args.llm_backend,
-                    base_url=base_url,
+                    base_url=args.llm_base_url,
                     api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
                     output_folder = f"{test_outputs}/{idx}"
                 )
 
     print("Done!")
 
-#     origin_code = """def has_close_elements(numbers: List[float], threshold: float) -> bool:
-#     for idx, elem in enumerate(numbers):
-#         for idx2, elem2 in enumerate(numbers):
-#             if idx != idx2:
-#                 distance = abs(elem - elem2)
-#                 if distance < threshold:
-#                     return True
-#     return False
-# """
-
-#     # Generate equivalent code (via OpenAI-compatible adapter) and Python tests
-#     sem_equiv = sem_equiv_test(
-#         origin_code,
-#         generate_test_model="qwen3:8b-q8_0",
-#         # To use OpenAI-compatible for test generation too:
-#         # generate_test_backend="openai",
-#         # openai_base_url="https://api.openai.com/v1",
-#         # openai_api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
-#     )
-#     print(sem_equiv[0])  # equivalent code
-#     print(sem_equiv[1])  # generated python tests
-
-#     origin_target_code = """import java.util.List;
-# import org.junit.jupiter.api.Test;
-# import static org.junit.jupiter.api.Assertions.assertEquals;
-
-# public class HumanEval_0 {
-#     static class HumanEval_0_Source {
-#         public static boolean hasCloseElements(List<Double> numbers, double threshold) {
-#             for (int idx = 0; idx < numbers.size(); idx++) {
-#                 for (int idx2 = 0; idx2 < numbers.size(); idx2++) {
-#                     if (idx != idx2) {
-#                         double distance = Math.abs(numbers.get(idx) - numbers.get(idx2));
-#                         if (distance < threshold) {
-#                             return true;
-#                         }
-#                     }
-#                 }
-#             }
-#             return false;
-#         }
-#     }
-# }"""
-
-#     sem_target_code = """import java.util.List;
-# import org.junit.jupiter.api.Test;
-# import static org.junit.jupiter.api.Assertions.assertEquals;
-
-# public class HumanEval_0 {
-#     static class HumanEval_0_Transformed {
-#         public boolean containsNearbyElements(List<Double> values, double limit) {
-#             int index = 0;
-#             while (index < values.size()) {
-#                 int innerIndex = 0;
-#                 while (innerIndex < values.size()) {
-#                     if (index != innerIndex) {
-#                         double gap = Math.abs(values.get(index) - values.get(innerIndex));
-#                         if (gap < limit) {
-#                             return true;
-#                         }
-#                     }
-#                     innerIndex++;
-#                 }
-#                 index++;
-#             }
-#             return false;
-#         }
-#     }
-# }"""
-
-#     test_code = """class TestFunctionEquivalence(unittest.TestCase):
-#     test_cases = [
-#         ([1.0, 2.0, 3.0], 0.5),
-#         ([1.0, 2.0, 3.0], 1.5),
-#         ([1.1, 2.2, 3.3], 0.1),
-#         ([1.1, 2.2, 3.3], 1.2),
-#         ([0.0, 0.0, 0.0], 0.0),
-#         ([0.0, 0.1, 0.2], 0.05),
-#         ([5.0, 4.9, 4.8], 0.2),
-#         ([10.0, 20.0, 30.0], 5.0),
-#         ([1.0, 1.0, 1.0, 1.0], 0.1),
-#         ([1.0, 2.0, 3.0, 4.0, 5.0], 1.1)
-#     ]
-#     expected_results = [False, True, False, True, True, False, True, False, True, True]
-#     def test_0(self): ...
-# """
-
-#     model_api = "qwen3:8b-q8_0"
-#     result = generate_test_java(
-#         origin_target_code, sem_target_code, test_code, model_api, 1.0,
-#         # To use OpenAI-compatible API for the Java test LLM:
-#         # backend="openai",
-#         # base_url="https://api.openai.com/v1",
-#         # api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
-#     )
-#     print(result)

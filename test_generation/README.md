@@ -78,11 +78,11 @@ The results were obtained by running an automated script.
 
 | Project     | Statement (%) | Branch (%) |
 | ----------- | ------------- | ---------- |
-| bluebird    | 36.14         | 51.55      |
+| bluebird    | 36.14         | 20.55      |
 | q           | 34.25         | 19.51      |
 | Complex.js  | 71.82         | 67.54      |
 | pull-stream | 90.96         | 80.84      |
-| memfs       | 82.60         | 61.04      |
+| memfs       | 82.60         | 63.14      |
 
 ---
 

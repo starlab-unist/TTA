@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional, Union
 
-import ollama
+import requests
 
 # -----------------------------------------------------------------------------
 # Time limit configuration
@@ -29,6 +29,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+def get_elapsed() -> str:
+    """Return elapsed time string since START_TIME."""
+    if START_TIME is None:
+        return "[0.00s]"
+    return f"[{time.time() - START_TIME:.2f}s]"
 
 # -----------------------------------------------------------------------------
 # Branch ordering helper
@@ -73,6 +79,7 @@ def build_unit_prompt(
         "    });\n"
         "});\n```\n\n"
         f"You must import package with `let {pkg_name} = require('{proj_name}');`. Use package name, do NOT use relative directory.\n"
+        "You must import `mocha` and `assert` with `let mocha = require('mocha');` and `let assert = require('assert');`\n"
         "You must write a simple & self-contained `it` test case.\n"
         "I will run your test directly, so give only the test as answer."
     )
@@ -100,6 +107,7 @@ def build_branch_prompt(
         "    });\n"
         "});\n```\n\n"
          f"You must import package with `let {pkg_name} = require('{proj_name}');`. Use package name, do NOT use relative directory.\n"
+        "You must import `mocha` and `assert` with `let mocha = require('mocha');` and `let assert = require('assert');`\n"
         "You must write a simple `it` test case that triggers the uncovered branch.\n"
         "I will run your test directly, so give only the test as answer."
     )
@@ -124,12 +132,28 @@ def build_branch_prompt(
 # -----------------------------------------------------------------------------
 # LLM generate
 # -----------------------------------------------------------------------------
+LLM_API_URL = "http://192.168.0.2:8001/v1/chat/completions"
+LLM_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+
 def llm_generate(
     prompt: str
 ) -> str:
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer dummy-key"
+    }
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 2048
+    }
 
-    res = ollama.chat(model='qwen2.5:72b', messages=[{'role': 'user', 'content': prompt}])
-    return res.message.content
+    response = requests.post(LLM_API_URL, headers=headers, json=payload)
+    response.raise_for_status()
+
+    data = response.json()
+    return data["choices"][0]["message"]["content"]
 
 # -----------------------------------------------------------------------------
 # Test / coverage execution helper
@@ -160,7 +184,7 @@ def run_test(
     )
     out, err = proc.communicate()
 
-    logger.info("Run (%s):\n%s", " ".join(cmd), out + err)
+    logger.info("%s Run (%s):\n%s", get_elapsed(), " ".join(cmd), out + err)
 
     passed = proc.returncode == 0 and "failing" not in (out + err)
     return {"files": test_paths, "passed": passed, "output": out + err}
@@ -186,16 +210,15 @@ def generate_unit_test(
         elapsed = time.time() - START_TIME
         if elapsed > TIME_LIMIT_SECONDS:
             logger.error(
-                "Time limit of %d seconds exceeded; aborting unit test generation for %s",
-                TIME_LIMIT_SECONDS, mut_name
+                "%s Time limit of %d seconds exceeded; aborting unit test generation for %s",
+                get_elapsed(), TIME_LIMIT_SECONDS, mut_name
             )
             return None, 0
-        logger.info("Elapsed %.2fs - Prompt for unit test generation:\n%s", elapsed, prompt)
+        logger.info("%s Prompt for unit test generation:\n%s", get_elapsed(), prompt)
         comp = llm_generate(prompt)
-        elapsed = time.time() - START_TIME
         body = comp.split("```javascript\n")[-1].split("\n```")[0]
         code = body
-        logger.info("Elapsed %.2fs - Output from unit test generation:\n%s", elapsed, code)
+        logger.info("%s Output from unit test generation:\n%s", get_elapsed(), code)
 
         tmp = unit_dir.parent / "tmp" / f"unit_{mut_name}_{attempt}.js"
         tmp.parent.mkdir(parents=True, exist_ok=True)
@@ -205,7 +228,7 @@ def generate_unit_test(
             dest = unit_dir / f"test_{mut_name}_{attempt}.js"
             dest.parent.mkdir(exist_ok=True)
             shutil.move(str(tmp), str(dest))
-            logger.info("Unit test passed for %s on attempt %d", mut_name, attempt)
+            logger.info("%s Unit test passed for %s on attempt %d", get_elapsed(), mut_name, attempt)
             budget -= 1
             return dest, budget
         else:
@@ -244,7 +267,7 @@ def generate_branch_tests(                     # ← signature unchanged
         try:
             report = json.loads(Path("coverage/coverage-final.json").read_text())
         except FileNotFoundError:
-            logger.warning("No coverage data – aborting branch generation.")
+            logger.warning("%s No coverage data – aborting branch generation.", get_elapsed())
             return budget
 
         cov = report.get(loc["file"].replace('dist', 'src'))
@@ -270,7 +293,7 @@ def generate_branch_tests(                     # ← signature unchanged
                         raw_branches.append(info_map["locations"][idx])
 
         if not raw_branches:
-            logger.info("All branches now covered for %s.", mut_name)
+            logger.info("%s All branches now covered for %s.", get_elapsed(), mut_name)
             break
 
         br    = order_branches(raw_branches)[0]        # top ranked
@@ -281,32 +304,28 @@ def generate_branch_tests(                     # ← signature unchanged
         full_prompt = build_branch_prompt(
             src, mut_name, proj_name, pkg_name, br, loc
         )
-        logger.info("▶  Target branch %s (budget %d)", bdesc, budget)
+        logger.info("%s ▶  Target branch %s (budget %d)", get_elapsed(), bdesc, budget)
 
         for attempt in range(MAX_COV_TESTS):
             if budget <= 0:
                 break
             if time.time() - START_TIME > TIME_LIMIT_SECONDS:
-                logger.error("Time limit exceeded during %s – abort branch gen.", mut_name)
+                logger.error("%s Time limit exceeded during %s – abort branch gen.", get_elapsed(), mut_name)
                 return 0
 
-            elapsed = time.time() - START_TIME
             logger.info(
-                "Elapsed %.2fs – Prompt for branch test generation (branch %s, try %d):\n%s",
-                elapsed, bdesc, attempt, full_prompt,
+                "%s Prompt for branch test generation (branch %s, try %d):\n%s",
+                get_elapsed(), bdesc, attempt, full_prompt,
             )
 
             comp   = llm_generate(full_prompt)
             body   = comp.split("```javascript\n")[-1].split("\n```")[0]
             code   = body
 
-            elapsed = time.time() - START_TIME
             logger.info(
-                "Elapsed %.2fs – Output from branch test generation (branch %s, try %d):\n%s",
-                elapsed, bdesc, attempt, code,
+                "%s Output from branch test generation (branch %s, try %d):\n%s",
+                get_elapsed(), bdesc, attempt, code,
             )
-
-            logger.info("Elapsed %.2fs - Output from unit test generation:\n%s", elapsed, code)
 
             tmp = branch_dir.parent / "tmp" / f"branch_{mut_name}_{bdesc}_{attempt}.js"
             tmp.parent.mkdir(parents=True, exist_ok=True)
@@ -319,7 +338,7 @@ def generate_branch_tests(                     # ← signature unchanged
                 dest = branch_dir / f"test_{mut_name}_{bdesc}_{attempt}.js"
                 dest.parent.mkdir(exist_ok=True)
                 shutil.move(str(tmp), str(dest))
-                logger.info("✔  Covered branch %s with %s", bdesc, dest.name)
+                logger.info("%s ✔  Covered branch %s with %s", get_elapsed(), bdesc, dest.name)
 
                 # ---------------------------------------------------------------- 4
                 # Refresh coverage with *all* tests for this mut_name
@@ -329,7 +348,7 @@ def generate_branch_tests(                     # ← signature unchanged
                 paths        = unit_tests + branch_tests
 
                 if not paths:
-                    logger.warning("No gathered tests for %s during coverage refresh.", mut_name)
+                    logger.warning("%s No gathered tests for %s during coverage refresh.", get_elapsed(), mut_name)
                 else:
                     _ = run_test(project_root, paths, "test:coverage")
                 break
@@ -338,7 +357,7 @@ def generate_branch_tests(                     # ← signature unchanged
                 fail_dest.parent.mkdir(exist_ok=True)
                 shutil.move(str(tmp), str(fail_dest))
         else:
-            logger.info("✘  Could not cover branch %s after %d attempts.", bdesc, MAX_COV_TESTS)
+            logger.info("%s ✘  Could not cover branch %s after %d attempts.", get_elapsed(), bdesc, MAX_COV_TESTS)
 
     return budget
 
@@ -362,12 +381,16 @@ def generate_tests_for_project(
         d.mkdir(parents=True, exist_ok=True)
 
     api_defs = json.loads(api_json.read_text())
-    funcs = [(n, i) for n, i in api_defs if i.get("type") == "function" and "location" in i]
+
+    if proj_name == "memfs":
+        funcs = [(n, i) for n, i in api_defs if i.get("type") == "function" and "location" in i and "watch" not in n.lower()]
+    else:
+        funcs = [(n, i) for n, i in api_defs if i.get("type") == "function" and "location" in i]
 
     # ------------------------------------------------------------------ PHASE 1
     passing_tests: Dict[str, Path] = {}
     for mut_name, info in funcs:
-        logger.info("[PHASE-1]  ==> %s", mut_name)
+        logger.info("%s [PHASE-1]  ==> %s", get_elapsed(), mut_name)
         loc = info["location"]
         src = Path(loc["file"]).read_text().splitlines(keepends=True)
         src = "".join(src[loc["startLine"] - 1 : loc["endLine"]])
@@ -383,7 +406,8 @@ def generate_tests_for_project(
             passing_tests[mut_name] = passing
 
     if not passing_tests:
-        logger.warning("No API received a passing unit test – stopping.")
+        logger.warning("%s No API received a passing unit test – stopping.", get_elapsed())
+        logger.info("%s Test generation completed at %s", get_elapsed(), time.strftime('%Y-%m-%d %H:%M:%S'))
         return
 
     # ------------------------------------------------------------------ PHASE 2
@@ -391,7 +415,7 @@ def generate_tests_for_project(
         if mut_name not in passing_tests:
             continue  # we have nothing to branch-cover if unit test failed
 
-        logger.info("[PHASE-2]  ==> %s", mut_name)
+        logger.info("%s [PHASE-2]  ==> %s", get_elapsed(), mut_name)
         loc = info["location"]
         src = Path(loc["file"]).read_text().splitlines(keepends=True)
         src = "".join(src[loc["startLine"] - 1 : loc["endLine"]])
@@ -408,7 +432,9 @@ def generate_tests_for_project(
         )
 
         total_used = (MAX_COV_BUDGET - branch_budget) + 1  # +1 unit test
-        logger.info("Total tests generated for %s: %d", mut_name, total_used)
+        logger.info("%s Total tests generated for %s: %d", get_elapsed(), mut_name, total_used)
+
+    logger.info("%s Test generation completed at %s", get_elapsed(), time.strftime('%Y-%m-%d %H:%M:%S'))
 
 # -----------------------------------------------------------------------------
 # CLI entrypoint
@@ -420,4 +446,3 @@ if __name__ == "__main__":
     parser.add_argument("api_json", type=Path, help="Path to API JSON file")
     args = parser.parse_args()
     generate_tests_for_project(Path("."), args.project, args.api_json)
-
